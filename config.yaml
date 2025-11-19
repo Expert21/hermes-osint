@@ -1,0 +1,59 @@
+# Default OSINT Tool Configuration Profile
+# This file contains all configurable settings for the OSINT tool
+
+# Timing Configuration
+# Controls delays and timeouts to avoid rate limiting
+timing:
+  min_delay: 2.0              # Minimum delay between requests (seconds)
+  max_delay: 5.0              # Maximum delay between requests (seconds)
+  search_delay_min: 3.0       # Minimum delay for search engine queries
+  search_delay_max: 7.0       # Maximum delay for search engine queries
+  timeout: 15                 # Request timeout (seconds)
+  rate_limit_backoff: 30      # Backoff time when rate limited (seconds)
+
+# Platform Configuration
+# Enable/disable specific platforms
+platforms:
+  social_media:
+    twitter: true
+    instagram: true
+    facebook: true
+    linkedin: true
+    github: true
+    pinterest: true
+    tiktok: true
+  
+  search_engines:
+    duckduckgo: true
+    bing: true
+
+# Feature Toggles
+# Enable/disable specific features
+features:
+  email_enumeration: true      # Generate and validate email addresses
+  username_variations: false   # Try username variations (Priority 2)
+  domain_enumeration: false    # DNS/subdomain enumeration (Priority 3)
+  verification: true           # Verify profile authenticity
+  deduplication: true          # Remove duplicate results
+  progress_indicators: true    # Show progress bars
+
+# Thresholds and Limits
+thresholds:
+  similarity_threshold: 0.85   # URL similarity threshold for deduplication (0.0-1.0)
+  quality_score_minimum: 0     # Minimum quality score to include in results (0-100)
+  max_results_per_search: 10   # Maximum results per search query
+  max_dork_queries: 9          # Maximum number of dork queries to execute
+
+# Output Configuration
+output:
+  default_format: json         # Default output format (json, csv, html, pdf, markdown)
+  verbose: true                # Enable verbose logging
+  save_cache: true             # Save results to cache
+  cache_duration_hours: 24     # How long to cache results
+
+# API Keys (Optional)
+# Leave as null if not using API-based features
+api_keys:
+  google_api_key: null
+  google_cse_id: null
+  twitter_bearer_token: null

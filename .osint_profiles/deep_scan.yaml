@@ -1,0 +1,40 @@
+timing:
+  min_delay: 1.0
+  max_delay: 2.0
+  search_delay_min: 3.0
+  search_delay_max: 7.0
+  timeout: 15
+  rate_limit_backoff: 30
+platforms:
+  social_media:
+    twitter: true
+    instagram: true
+    facebook: true
+    linkedin: true
+    github: true
+    pinterest: true
+    tiktok: true
+  search_engines:
+    duckduckgo: true
+    bing: true
+features:
+  email_enumeration: true
+  username_variations: true
+  domain_enumeration: false
+  verification: true
+  deduplication: true
+  progress_indicators: true
+thresholds:
+  similarity_threshold: 0.85
+  quality_score_minimum: 0
+  max_results_per_search: 20
+  max_dork_queries: 15
+output:
+  default_format: json
+  verbose: true
+  save_cache: true
+  cache_duration_hours: 24
+api_keys:
+  google_api_key: null
+  google_cse_id: null
+  twitter_bearer_token: null

@@ -1,0 +1,41 @@
+{
+    "target": "John Doe",
+    "target_type": "individual",
+    "search_engines": [],
+    "social_media": [],
+    "emails": {
+        "target_name": "John Doe",
+        "emails_generated": [
+            "doe.john@example.com",
+            "doe@example.com",
+            "doejohn@example.com",
+            "j.doe@example.com",
+            "jdoe@example.com",
+            "john-doe@example.com",
+            "john.d@example.com",
+            "john.doe@example.com",
+            "john@example.com",
+            "john_doe@example.com",
+            "johnd@example.com",
+            "johndoe@example.com"
+        ],
+        "valid_format_count": 12,
+        "domains_checked": [
+            "example.com"
+        ],
+        "domains_with_mx": [
+            "example.com"
+        ]
+    },
+    "connections": [],
+    "statistics": {
+        "total_original": 0,
+        "total_unique": 0,
+        "duplicates_removed": 0,
+        "search_results": 0,
+        "social_results": 0,
+        "connections_found": 0,
+        "avg_quality_score": 0,
+        "high_quality_results": 0
+    }
+}

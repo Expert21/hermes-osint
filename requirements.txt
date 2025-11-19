@@ -4,3 +4,7 @@ colorama
 argparse
 python-dotenv
 urllib3
+tqdm
+pyyaml
+dnspython
+validators
