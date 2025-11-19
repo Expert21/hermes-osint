@@ -1,3 +1,42 @@
+Metadata-Version: 2.4
+Name: hermes-osint
+Version: 1.0.0
+Summary: Advanced OSINT Intelligence Gathering Tool
+Home-page: https://github.com/yourusername/hermes
+Author: Your Name
+Author-email: your.email@example.com
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Information Technology
+Classifier: Topic :: Security
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: requests
+Requires-Dist: beautifulsoup4
+Requires-Dist: colorama
+Requires-Dist: python-dotenv
+Requires-Dist: urllib3
+Requires-Dist: tqdm
+Requires-Dist: pyyaml
+Requires-Dist: dnspython
+Requires-Dist: validators
+Requires-Dist: reportlab
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 # Hermes 🕊️
 
 **Advanced OSINT Intelligence Gathering Tool**

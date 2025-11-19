@@ -1,0 +1,10 @@
+requests
+beautifulsoup4
+colorama
+python-dotenv
+urllib3
+tqdm
+pyyaml
+dnspython
+validators
+reportlab
