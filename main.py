@@ -5,6 +5,7 @@ from src.core.config import load_config
 from src.modules.search_engines import run_search_engines
 from src.modules.social_media import run_social_media_checks
 from src.reporting.generator import generate_report
+from src.modules.verification import enhanced_social_media_check_with_verification
 
 def main():
     parser = argparse.ArgumentParser(description="OSINT Tool - Social Media & Web Search")
@@ -26,9 +27,16 @@ def main():
     results['search_engines'] = run_search_engines(args.target, config)
     
     # Run Social Media Checks
-    logger.info("Running social media modules...")
-    results['social_media'] = run_social_media_checks(args.target, args.type, config)
-    
+    results['social_media'] = enhanced_social_media_check_with_verification(
+        target=args.target,
+        target_type=args.type,
+        config=config,
+        additional_info={
+            "company": "Optional Company Name",
+            "location": "Optional Location",
+        # Add any other known info about target
+        }
+    )
     # Generate Report
     logger.info(f"Generating report to {args.output}...")
     generate_report(results, args.output)
