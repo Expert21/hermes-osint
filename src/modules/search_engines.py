@@ -22,6 +22,8 @@ class SearchEngineManager:
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         ]
         self.search_engines_available = ["duckduckgo", "bing", "yahoo", "brave", "startpage", "yandex"]
+        self._playwright_available = self._check_playwright_available()
+        self._playwright_warning_shown = False
     
     def _create_session(self) -> requests.Session:
         """Create session with retry logic"""
@@ -63,41 +65,81 @@ class SearchEngineManager:
         random.shuffle(header_items)
         return dict(header_items)
     
+    def _check_playwright_available(self) -> bool:
+        """Check if Playwright is available (check once at init)"""
+        try:
+            import playwright
+            return True
+        except ImportError:
+            return False
+            
     def _random_delay(self, min_sec: float = 3.0, max_sec: float = 7.0):
         """Random delay between searches"""
         delay = random.uniform(min_sec, max_sec)
         logger.debug(f"Waiting {delay:.2f}s before next search")
-        time.sleep(delay)
+        time.sleep(delay) 
 
     def _fetch_content(self, url: str, use_js: bool = False) -> Optional[str]:
         """Fetch content using requests or Playwright"""
         if use_js:
-            try:
-                from playwright.sync_api import sync_playwright
-                with sync_playwright() as p:
-                    browser = p.chromium.launch(headless=True)
-                    context = browser.new_context(
-                        user_agent=random.choice(self.user_agents),
-                        viewport={'width': 1920, 'height': 1080}
-                    )
-                    page = context.new_page()
-                    page.goto(url, wait_until="networkidle", timeout=30000)
-                    content = page.content()
-                    browser.close()
-                    return content
-            except ImportError:
-                logger.error("Playwright not installed. Please run: pip install playwright && playwright install")
-                return None
-            except Exception as e:
-                logger.error(f"Playwright error: {e}")
-                return None
-        else:
+            # Check if Playwright is available
+            if not self._playwright_available:
+                # Show warning only once
+                if not self._playwright_warning_shown:
+                    logger.warning("Playwright not installed. Falling back to standard requests.")
+                    logger.warning("To enable JavaScript rendering, run: pip install playwright && playwright install")
+                    self._playwright_warning_shown = True
+                # Fall back to regular requests
+                use_js = False
+            else:
+                # Playwright is available, try to use it
+                try:
+                    from playwright.sync_api import sync_playwright
+                    with sync_playwright() as p:
+                        browser = p.chromium.launch(headless=True)
+                        context = browser.new_context(
+                            user_agent=random.choice(self.user_agents),
+                            viewport={'width': 1920, 'height': 1080}
+                        )
+                        page = context.new_page()
+                        page.goto(url, wait_until="networkidle", timeout=30000)
+                        content = page.content()
+                        browser.close()
+                        return content
+                except Exception as e:
+                    logger.error(f"Playwright error: {e}")
+                    logger.info("Falling back to standard requests")
+                    # Fall back to regular requests
+                    use_js = False
+        
+        # Use regular requests (either originally requested or fallback)
+        if not use_js:
             try:
                 self._random_delay(2.0, 4.0)
                 response = self.session.get(url, headers=self._get_headers(), timeout=15)
+                
+                # Handle 202 (Accepted) - retry once after a delay
+                if response.status_code == 202:
+                    logger.info("Received 202 (Accepted) - content not ready. Retrying after delay...")
+                    time.sleep(random.uniform(3.0, 5.0))  # Wait a bit longer for processing
+                    response = self.session.get(url, headers=self._get_headers(), timeout=15)
+                    
+                    if response.status_code == 202:
+                        logger.warning("Still received 202 after retry - content not available, moving on")
+                        return None
+                
                 if response.status_code == 200:
                     return response.text
-                logger.warning(f"Request failed with status {response.status_code}")
+                
+                # Provide more context for different status codes
+                if response.status_code == 429:
+                    logger.warning(f"Rate limited (429) - too many requests")
+                elif response.status_code in [401, 403]:
+                    logger.warning(f"Access denied ({response.status_code}) - possible bot detection")
+                elif response.status_code >= 500:
+                    logger.warning(f"Server error ({response.status_code})")
+                else:
+                    logger.warning(f"Request failed with status {response.status_code}")                    
                 return None
             except Exception as e:
                 logger.error(f"Request error: {e}")
