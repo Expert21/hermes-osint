@@ -4,7 +4,7 @@
 
 Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designed for comprehensive digital footprint analysis. Named after the Greek messenger god, Hermes swiftly gathers intelligence across multiple platforms and presents it in professional, actionable reports.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![Python](https://img.shields.io/badge/python-3.7+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -32,9 +32,14 @@ Hermes is a comprehensive OSINT framework that automates the process of gatherin
 ### Core Intelligence Gathering
 
 #### 🔎 Search Engine Integration
-- DuckDuckGo and Bing search with dorking capabilities
+- **6 Search Engines:** DuckDuckGo, Bing, Yahoo, Brave Search, Startpage, Yandex
+- Search dorking capabilities across all engines
 - Automatic fallback mechanisms
-- Rate limiting and evasion techniques
+- Advanced evasion techniques:
+  - Randomized header ordering
+  - Session cookie persistence
+  - Referrer spoofing
+  - Variable request delays
 
 #### 📱 Social Media Reconnaissance
 - **Platforms Supported:** LinkedIn, Twitter/X, GitHub, Instagram, Facebook, Reddit, TikTok, YouTube, Medium, Pinterest, Tumblr
@@ -218,6 +223,7 @@ hermes --target "johndoe" --type individual --no-verify
 - `--username-variations` - Try username variations
 - `--include-leet` - Include leet speak (j0hnd0e)
 - `--include-suffixes` - Include number suffixes (johndoe123)
+- `--js-render` - Enable JavaScript rendering via Playwright (default: off)
 - `--interactive`, `-i` - Interactive wizard mode
 
 ### Cache Management
@@ -228,6 +234,7 @@ hermes --target "johndoe" --type individual --no-verify
 - `--no-verify` - Skip profile verification (faster)
 - `--skip-search` - Skip search engines
 - `--skip-social` - Skip social media
+- `--js-render` - Enable JavaScript rendering (requires Playwright)
 - `--no-progress` - Disable progress indicators
 - `--no-dedup` - Disable deduplication
 

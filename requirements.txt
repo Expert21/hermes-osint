@@ -1,7 +1,6 @@
 requests
 beautifulsoup4
 colorama
-argparse
 python-dotenv
 urllib3
 tqdm
@@ -9,3 +8,4 @@ pyyaml
 dnspython
 validators
 reportlab
+playwright

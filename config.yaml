@@ -26,6 +26,10 @@ platforms:
   search_engines:
     duckduckgo: true
     bing: true
+    yahoo: true
+    brave: true
+    startpage: true
+    yandex: true
 
 # Feature Toggles
 # Enable/disable specific features

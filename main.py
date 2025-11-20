@@ -70,6 +70,7 @@ Examples:
     parser.add_argument("--skip-social", action="store_true", help="Skip social media")
     parser.add_argument("--no-progress", action="store_true", help="Disable progress indicators")
     parser.add_argument("--no-dedup", action="store_true", help="Disable deduplication")
+    parser.add_argument("--js-render", action="store_true", help="Enable JavaScript rendering (requires Playwright)")
     
     # Priority 2: Username Variations
     parser.add_argument("--username-variations", action="store_true", help="Try username variations on social media")
@@ -150,6 +151,12 @@ Examples:
     logger.info(f"Starting OSINT scan for target: {args.target} ({args.type})")
     if args.config:
         logger.info(f"Using configuration profile: {args.config}")
+    
+    if not args.js_render:
+        logger.info("JavaScript Rendering disabled, use --js-render to enable (Requires Playwright)")
+    else:
+        logger.info("JavaScript Rendering enabled (using Playwright)")
+        
     logger.info("=" * 60)
     
     results = {
@@ -196,7 +203,7 @@ Examples:
         logger.info("\n[Search Engines] Running search engine modules...")
         logger.info("-" * 60)
         try:
-            results['search_engines'] = run_search_engines(args.target, config_dict)
+            results['search_engines'] = run_search_engines(args.target, config_dict, js_render=args.js_render)
         except Exception as e:
             logger.error(f"Search engine module failed: {e}")
             results['search_engines'] = []

@@ -15,7 +15,7 @@ class ProfileVerifier:
     
     def __init__(self):
         self.session = requests.Session()
-        self.confidence_threshold = 0.6  # Confidence score threshold (0-1)
+        self.confidence_threshold = 0.4  # Confidence score threshold (0-1)
     
     def verify_profile(
         self, 
