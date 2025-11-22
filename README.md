@@ -261,23 +261,6 @@ thresholds:
 **The developers are not responsible for misuse of this tool.**
 
 ---
----
-
-## ⚠️ Legal & Ethical Considerations
-
-**IMPORTANT:** Hermes is designed for legitimate OSINT activities only.
-
-- ✅ Use only on publicly available information
-- ✅ Respect platform Terms of Service
-- ✅ Comply with local laws and regulations
-- ✅ Obtain proper authorization when required
-- ❌ Do not use for harassment or stalking
-- ❌ Do not use for unauthorized access attempts
-- ❌ Do not violate privacy laws
-
-**The developers are not responsible for misuse of this tool.**
-
----
 
 ## 🤝 Contributing
 
