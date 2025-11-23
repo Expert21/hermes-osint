@@ -1,13 +1,3 @@
-import asyncio
-import logging
-import re
-from typing import Dict, List, Optional
-from bs4 import BeautifulSoup
-from difflib import SequenceMatcher
-from src.core.async_request_manager import AsyncRequestManager
-
-logger = logging.getLogger("OSINT_Tool")
-
 class AsyncProfileVerifier:
     """
     Async verification system to confirm social media profiles.
@@ -41,7 +31,7 @@ class AsyncProfileVerifier:
                 logger.warning(f"Could not fetch profile for verification: {url}")
                 return verification_result
             
-            soup = BeautifulSoup(response["text"], 'html.parser')
+            soup = SafeSoup(response["text"])
             content = response["text"].lower()
             
             # Platform-specific verification

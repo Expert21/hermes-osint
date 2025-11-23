@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 import logging
 import json
-from typing import Optional
+import hmac
+import hashlib
+from typing import Optional, Dict
 
 try:
     from cryptography.fernet import Fernet
@@ -55,6 +57,61 @@ class SecretsManager:
         self._cipher = Fernet(key)
         return self._cipher
     
+    def _get_hmac_key(self):
+        """Derive HMAC key from encryption key."""
+        if not self.key_file.exists():
+            return None
+        with open(self.key_file, 'rb') as f:
+            key = f.read()
+        return hashlib.sha256(key).digest()
+
+    def _read_all_encrypted(self) -> Dict[str, str]:
+        """Read all encrypted credentials with HMAC verification."""
+        if not CRYPTO_AVAILABLE or not self.creds_file.exists():
+            return {}
+            
+        try:
+            cipher = self._get_cipher()
+            if not cipher:
+                return {}
+            
+            with open(self.creds_file, 'rb') as f:
+                file_content = f.read()
+            
+            if not file_content:
+                return {}
+
+            # Try HMAC verification first
+            if len(file_content) >= 32:
+                stored_hmac = file_content[:32]
+                encrypted_data = file_content[32:]
+                
+                hmac_key = self._get_hmac_key()
+                if hmac_key:
+                    calculated_hmac = hmac.new(hmac_key, encrypted_data, hashlib.sha256).digest()
+                    if hmac.compare_digest(stored_hmac, calculated_hmac):
+                        decrypted = cipher.decrypt(encrypted_data)
+                        data = json.loads(decrypted.decode())
+                        if isinstance(data, dict):
+                            return data
+            
+            # Fallback to legacy format (no HMAC)
+            try:
+                decrypted = cipher.decrypt(file_content)
+                data = json.loads(decrypted.decode())
+                if isinstance(data, dict):
+                    logger.warning("Legacy credentials file format detected. Will migrate on next save.")
+                    return data
+            except Exception:
+                pass
+                
+            logger.error("Credentials file integrity check failed or invalid format.")
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Failed to read credentials: {e}")
+            return {}
+    
     def get_credential(self, key_name: str) -> Optional[str]:
         """
         Retrieve credential with priority:
@@ -98,61 +155,38 @@ class SecretsManager:
     
     def _read_encrypted(self, key_name: str) -> Optional[str]:
         """Read from encrypted credentials file."""
-        if not CRYPTO_AVAILABLE:
-            return None
-        
-        if not self.creds_file.exists():
-            return None
-        
-        try:
-            cipher = self._get_cipher()
-            if not cipher:
-                return None
-            
-            with open(self.creds_file, 'rb') as f:
-                encrypted_data = f.read()
-            
-            if not encrypted_data:
-                return None
-            
-            decrypted = cipher.decrypt(encrypted_data)
-            credentials = json.loads(decrypted.decode())
-            
-            return credentials.get(key_name)
-            
-        except Exception as e:
-            logger.error(f"Failed to read credential '{key_name}': {e}")
-            return None
+        credentials = self._read_all_encrypted()
+        return credentials.get(key_name)
     
     def _write_encrypted(self, key_name: str, value: str):
-        """Write to encrypted credentials file."""
+        """Write to encrypted credentials file with HMAC."""
         try:
             cipher = self._get_cipher()
             if not cipher:
                 return
             
             # Read existing credentials
-            credentials = {}
-            if self.creds_file.exists():
-                try:
-                    with open(self.creds_file, 'rb') as f:
-                        encrypted = f.read()
-                    if encrypted:
-                        decrypted = cipher.decrypt(encrypted)
-                        credentials = json.loads(decrypted.decode())
-                except Exception as e:
-                    logger.warning(f"Could not read existing credentials: {e}")
+            credentials = self._read_all_encrypted()
             
             # Update credentials
             credentials[key_name] = value
             
-            # Encrypt and write
+            # Encrypt
             plaintext = json.dumps(credentials).encode()
-            encrypted = cipher.encrypt(plaintext)
+            encrypted_data = cipher.encrypt(plaintext)
             
+            # Calculate HMAC
+            hmac_key = self._get_hmac_key()
+            if not hmac_key:
+                logger.error("Could not get HMAC key")
+                return
+                
+            calculated_hmac = hmac.new(hmac_key, encrypted_data, hashlib.sha256).digest()
+            
+            # Write HMAC + EncryptedData
             self.creds_file.touch(mode=0o600)
             with open(self.creds_file, 'wb') as f:
-                f.write(encrypted)
+                f.write(calculated_hmac + encrypted_data)
                 
         except Exception as e:
             logger.error(f"Failed to write credential '{key_name}': {e}")

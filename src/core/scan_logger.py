@@ -63,6 +63,15 @@ class ScanLogger:
             details: Additional structured data
             error: Exception object if applicable
         """
+        import traceback
+        
+        error_str = None
+        if error:
+            if hasattr(error, '__traceback__') and error.__traceback__:
+                error_str = "".join(traceback.format_exception(type(error), error, error.__traceback__))
+            else:
+                error_str = str(error)
+
         event = {
             "timestamp": datetime.now().isoformat(),
             "scan_id": self.scan_id,
@@ -70,7 +79,7 @@ class ScanLogger:
             "module": module,
             "message": message,
             "details": details or {},
-            "error": str(error) if error else None,
+            "error": error_str,
             "error_type": type(error).__name__ if error else None
         }
         

@@ -24,7 +24,7 @@ from src.core.interactive import run_interactive_mode
 
 async def main_async():
     parser = argparse.ArgumentParser(
-        description="OSINT Tool - Social Media & Web Search with Verification (v1.3.0)",
+        description="OSINT Tool - Social Media & Web Search with Verification (v1.3.1)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     

@@ -57,10 +57,10 @@ class HTMLSanitizer:
         Note:
             Uses 'html.parser' instead of 'lxml' to prevent XML External Entity (XXE) attacks
         """
-        from bs4 import BeautifulSoup
+        from src.core.utils import SafeSoup
         
-        # Use html.parser (not lxml) to avoid XXE vulnerabilities
-        soup = BeautifulSoup(html_content, 'html.parser')
+        # Use SafeSoup wrapper
+        soup = SafeSoup(html_content)
         return soup
     
     @staticmethod

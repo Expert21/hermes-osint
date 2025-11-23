@@ -21,6 +21,12 @@ class PassiveIntelligenceModule:
         self.hibp_api_key = os.getenv("HIBP_API_KEY")
         self.scan_logger = scan_logger
 
+    def _redact(self, value: str) -> str:
+        """Redact sensitive values for logging."""
+        if not value or len(value) < 4:
+            return "****"
+        return f"{value[:4]}****{value[-2:]}"
+
     async def check_breach_data(self, email: str) -> List[Dict[str, Any]]:
         """
         Check Have I Been Pwned API for breaches.
@@ -31,17 +37,20 @@ class PassiveIntelligenceModule:
             return []
 
         url = f"https://haveibeenpwned.com/api/v3/breachedaccount/{urllib.parse.quote(email)}?truncateResponse=false"
+        
+        # Redact API key for logging
+        redacted_key = self._redact(self.hibp_api_key)
+        logger.debug(f"Using HIBP API Key: {redacted_key}")
+        
         headers = {
-            "hibp-api-key": self.hibp_api_key,
+            "hibp-api-key": redacted_key,
             "user-agent": "Hermes-OSINT-Tool"
         }
-
-        # HIBP has strict rate limits, so we handle them carefully
+        
         try:
             response = await self.request_manager.fetch(url, headers=headers)
             
             if response["status"] == 200:
-                import json
                 try:
                     breaches = json.loads(response["text"])
                     if self.scan_logger:
@@ -114,15 +123,36 @@ class PassiveIntelligenceModule:
                 if response["ok"] and "pub:" in response["text"]:
                     # Parse the machine-readable output
                     lines = response["text"].split('\n')
+                    
+                    # SECURITY: Limit number of lines processed to prevent DoS
+                    processed_count = 0
+                    max_lines = 100
+                    
                     for line in lines:
+                        if processed_count >= max_lines:
+                            logger.warning(f"PGP response truncated after {max_lines} lines")
+                            break
+                            
                         if line.startswith("pub:"):
+                            processed_count += 1
                             parts = line.split(':')
                             if len(parts) > 1:
+                                # SECURITY: Sanitize and limit length of extracted fields
+                                key_id = parts[1] if len(parts) > 1 else "Unknown"
+                                timestamp = parts[4] if len(parts) > 4 else "Unknown"
+                                
+                                # Truncate to safe length
+                                key_id = key_id[:50]
+                                timestamp = timestamp[:50]
+                                
+                                # Sanitize raw data line
+                                safe_line = line[:200]
+                                
                                 results.append({
                                     "source": "PGP Keyserver",
-                                    "key_id": parts[1] if len(parts) > 1 else "Unknown",
-                                    "timestamp": parts[4] if len(parts) > 4 else "Unknown",
-                                    "data": line
+                                    "key_id": key_id,
+                                    "timestamp": timestamp,
+                                    "data": safe_line
                                 })
             except Exception as e:
                 if self.scan_logger:

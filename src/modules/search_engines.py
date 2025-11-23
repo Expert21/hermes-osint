@@ -3,7 +3,7 @@ import logging
 import random
 import secrets
 from typing import List, Dict, Optional
-from bs4 import BeautifulSoup
+from src.core.utils import SafeSoup
 from urllib.parse import quote_plus
 from src.core.async_request_manager import AsyncRequestManager
 
@@ -38,16 +38,20 @@ class AsyncSearchEngineManager:
                     from playwright.async_api import async_playwright
                     async with async_playwright() as p:
                         # Launch with security settings
-                        browser = await p.chromium.launch(
-                            headless=True,
-                            args=[
-                                '--no-sandbox',
-                                '--disable-setuid-sandbox',
-                                '--disable-dev-shm-usage',
-                                '--disable-accelerated-2d-canvas',
-                                '--disable-gpu',
-                                '--disable-web-security',  # Only if needed for some OSINT targets
-                            ]
+                        # SECURITY: Add timeout to prevent hanging
+                        browser = await asyncio.wait_for(
+                            p.chromium.launch(
+                                headless=True,
+                                args=[
+                                    '--no-sandbox',
+                                    '--disable-setuid-sandbox',
+                                    '--disable-dev-shm-usage',
+                                    '--disable-accelerated-2d-canvas',
+                                    '--disable-gpu',
+                                    '--disable-web-security',  # Only if needed for some OSINT targets
+                                ]
+                            ),
+                            timeout=30.0
                         )
                         
                         context = await browser.new_context(
@@ -90,7 +94,7 @@ class AsyncSearchEngineManager:
             return []
 
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = SafeSoup(html_content)
             search_results = soup.find_all('div', class_='result')
             
             for result in search_results[:num_results]:
@@ -123,7 +127,7 @@ class AsyncSearchEngineManager:
             return []
 
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = SafeSoup(html_content)
             search_results = soup.find_all('li', class_='b_algo')
             
             for result in search_results[:num_results]:
@@ -157,7 +161,7 @@ class AsyncSearchEngineManager:
             return []
 
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = SafeSoup(html_content)
             search_results = soup.find_all('div', class_='algo')
             
             for result in search_results[:num_results]:
@@ -191,7 +195,7 @@ class AsyncSearchEngineManager:
             return []
 
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = SafeSoup(html_content)
             search_results = soup.find_all('div', class_='snippet')
             
             for result in search_results[:num_results]:
@@ -225,7 +229,7 @@ class AsyncSearchEngineManager:
             return []
 
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = SafeSoup(html_content)
             search_results = soup.find_all('div', class_='w-gl__result')
             
             for result in search_results[:num_results]:
@@ -258,7 +262,7 @@ class AsyncSearchEngineManager:
             return []
 
         try:
-            soup = BeautifulSoup(html_content, 'html.parser')
+            soup = SafeSoup(html_content)
             search_results = soup.find_all('li', class_='serp-item')
             
             for result in search_results[:num_results]:

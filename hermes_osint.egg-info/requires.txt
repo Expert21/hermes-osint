@@ -8,3 +8,6 @@ pyyaml
 dnspython
 validators
 reportlab
+aiohttp
+cryptography
+playwright

@@ -122,8 +122,10 @@ class URLValidator:
         """
         import re
         
-        # Match IP:PORT format
-        pattern = r'^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5})$'
+        # Match IP:PORT format with stricter regex
+        # 0-255 per octet, 1-65535 for port
+        ip_octet = r'(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
+        pattern = r'^(' + ip_octet + r'\.' + ip_octet + r'\.' + ip_octet + r'\.' + ip_octet + r'):(\d{1,5})$'
         match = re.match(pattern, proxy)
         
         if not match:

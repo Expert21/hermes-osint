@@ -3,6 +3,7 @@ import json
 import logging
 import hashlib
 from datetime import datetime, timedelta
+import time
 from typing import Optional, Dict, Any
 from pathlib import Path
 from src.core.rate_limiter import RateLimiter
@@ -125,7 +126,7 @@ class CacheManager:
         logger.debug(f"Cache hit: {platform} for {target}")
         return json.loads(result_data)
     
-    def set(self, target: str, platform: str, result: Dict[str, Any], extra: str = ""):
+    def set(self, target: str, platform: str, result: Dict[str, Any], extra: str = "") -> bool:
         """
         Store result in cache.
         
@@ -134,35 +135,50 @@ class CacheManager:
             platform: Platform name
             result: Result data to cache
             extra: Additional key data
+            
+        Returns:
+            True if successful, False otherwise
         """
-        if not self.write_limiter.is_allowed():
-            logger.warning("Cache write rate limit exceeded")
-            return
-
-        cache_key = self._generate_cache_key(target, platform, extra)
-        created_at = datetime.now()
-        expires_at = created_at + self.cache_duration
+        retries = 2
+        for attempt in range(retries + 1):
+            if self.write_limiter.is_allowed():
+                try:
+                    cache_key = self._generate_cache_key(target, platform, extra)
+                    created_at = datetime.now()
+                    expires_at = created_at + self.cache_duration
+                    
+                    conn = sqlite3.connect(self.db_path)
+                    cursor = conn.cursor()
+                    
+                    cursor.execute('''
+                        INSERT OR REPLACE INTO cache 
+                        (cache_key, target, platform, result_data, created_at, expires_at)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (
+                        cache_key,
+                        target,
+                        platform,
+                        json.dumps(result),
+                        created_at.isoformat(),
+                        expires_at.isoformat()
+                    ))
+                    
+                    conn.commit()
+                    conn.close()
+                    
+                    logger.debug(f"Cached result: {platform} for {target}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Cache write failed: {e}")
+                    return False
+            
+            if attempt < retries:
+                wait_time = 0.5 * (2 ** attempt)
+                logger.warning(f"Cache write rate limit exceeded. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
         
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT OR REPLACE INTO cache 
-            (cache_key, target, platform, result_data, created_at, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            cache_key,
-            target,
-            platform,
-            json.dumps(result),
-            created_at.isoformat(),
-            expires_at.isoformat()
-        ))
-        
-        conn.commit()
-        conn.close()
-        
-        logger.debug(f"Cached result: {platform} for {target}")
+        logger.error("Cache write failed after retries: Rate limit exceeded")
+        return False
     
     def delete(self, target: str, platform: str, extra: str = ""):
         """

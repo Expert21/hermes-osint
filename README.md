@@ -4,7 +4,7 @@
 
 Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designed for comprehensive digital footprint analysis. Named after the Greek messenger god, Hermes swiftly gathers intelligence across multiple platforms and presents it in professional, actionable reports.
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.1-blue)
 ![Python](https://img.shields.io/badge/python-3.7+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -149,7 +149,21 @@ hermes --clear-cache
 
 ## 📝 Release Notes
 
-### v1.3.0 - Intelligence Refactor (Current Release)
+### v1.3.1 - Security Hardening (Current Release)
+
+**🔒 Enhanced Security Fixes:**
+- **API Key Redaction:** Sensitive credentials masked in all log output (4+2 character format)
+- **Cache Race Condition:** Retry logic with exponential backoff prevents data loss under rate limiting
+- **Redirect Validation:** Manual redirect handling blocks SSRF attacks to private IPs
+- **PGP Parser DoS:** Length limits and sanitization prevent denial-of-service attacks
+- **Proxy Integrity:** SHA-256 checksum verification for fetched proxy lists
+- **Secrets Validation:** HMAC integrity checking for encrypted credentials
+- **XXE Prevention:** SafeSoup wrapper eliminates XML entity expansion vulnerabilities
+- **Architecture:** Removed singleton pattern from AsyncRequestManager for better testability
+
+**Testing:** All 8 security fixes verified with comprehensive unit tests.
+
+### v1.3.0 - Intelligence Refactor
 
 **🧠 Three-Tier Intelligence Architecture:**
 - **Passive Intelligence Module:** New stealth-first data gathering via HIBP breach data, PGP keyservers, and search engine dorking

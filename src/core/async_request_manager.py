@@ -5,6 +5,8 @@ import random
 import secrets
 import os
 import ipaddress
+import urllib.parse
+import hashlib
 from typing import Optional, Dict, Any, List, Union
 from src.core.url_validator import URLValidator
 from src.core.resource_limiter import ResourceLimiter
@@ -13,23 +15,12 @@ logger = logging.getLogger("OSINT_Tool")
 
 class AsyncRequestManager:
     """
-    Singleton class to manage async HTTP requests with rate limiting, retries, and proxy rotation.
+    Manages async HTTP requests with rate limiting, retries, and proxy rotation.
     """
-    _instance = None
-    
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super(AsyncRequestManager, cls).__new__(cls)
-            cls._instance.initialized = False
-        return cls._instance
     
     def __init__(self, proxy_file: Optional[str] = None, auto_fetch_proxies: bool = False):
-        if self.initialized:
-            return
-            
         self.session: Optional[aiohttp.ClientSession] = None
         self.sem = asyncio.Semaphore(10) 
-        self.initialized = True
         
         self.user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -51,13 +42,32 @@ class AsyncRequestManager:
             pass
 
     def load_proxies(self):
-        """Load and validate proxies from file."""
+        """Load and validate proxies from file with integrity check."""
         if not self.proxy_file or not os.path.exists(self.proxy_file):
             return
             
         try:
+            # Read proxies
             with open(self.proxy_file, 'r') as f:
-                raw_proxies = [line.strip() for line in f if line.strip()]
+                content = f.read()
+                raw_proxies = [line.strip() for line in content.splitlines() if line.strip()]
+            
+            # Integrity check
+            checksum_file = f"{self.proxy_file}.sha256"
+            if os.path.exists(checksum_file):
+                with open(checksum_file, 'r') as f:
+                    expected_checksum = f.read().strip()
+                
+                actual_checksum = hashlib.sha256(content.encode('utf-8')).hexdigest()
+                
+                if actual_checksum != expected_checksum:
+                    logger.warning("Proxy file integrity check failed! Discarding proxies.")
+                    self.proxies = []  # Clear any existing proxies
+                    return
+                
+                logger.info("Proxy file integrity verified.")
+            else:
+                logger.warning("No checksum file found for proxies. Integrity not verified.")
             
             # Validate each proxy
             valid_proxies = []
@@ -108,19 +118,27 @@ class AsyncRequestManager:
             logger.error(f"Error fetching proxies: {e}")
     
     def _save_proxies_securely(self):
-        """Save proxies with secure file permissions."""
+        """Save proxies with secure file permissions and checksum."""
         try:
             # Create parent directory if needed
             if os.path.dirname(self.proxy_file):
                 os.makedirs(os.path.dirname(self.proxy_file), exist_ok=True)
             
+            content = '\n'.join(self.proxies)
+            
             # Write proxies
             with open(self.proxy_file, 'w') as f:
-                f.write('\n'.join(self.proxies))
+                f.write(content)
+            
+            # Write checksum
+            checksum = hashlib.sha256(content.encode('utf-8')).hexdigest()
+            with open(f"{self.proxy_file}.sha256", 'w') as f:
+                f.write(checksum)
             
             # Set secure permissions (owner read/write only)
             try:
                 os.chmod(self.proxy_file, 0o600)
+                os.chmod(f"{self.proxy_file}.sha256", 0o600)
             except Exception:
                 pass  # Windows doesn't support chmod
                 
@@ -184,55 +202,80 @@ class AsyncRequestManager:
                 try:
                     await asyncio.sleep(random.uniform(0.1, 0.5))
                     
-                    async with session.request(
-                        method, 
-                        url, 
-                        headers=headers, 
-                        params=params, 
-                        data=data, 
-                        json=json_data,
-                        proxy=proxy
-                    ) as response:
-                        
-                        # SECURITY: Check content length before downloading
-                        if not ResourceLimiter.check_content_length(dict(response.headers)):
-                            return {"status": 0, "text": "", "error": "Response too large", "ok": False}
-                        
-                        if response.status == 429:
-                            retry_after = int(response.headers.get("Retry-After", 5))
-                            logger.warning(f"Rate limited by {url}. Waiting {retry_after}s...")
-                            await asyncio.sleep(retry_after)
-                            continue
-                        
-                        # 403 Forbidden might indicate a bad proxy or bot detection
-                        if response.status == 403 and proxy:
-                            logger.debug(f"Proxy {proxy} blocked by {url}")
-                            continue
-                        
-                        # HTTP 202 Accepted - retry once with delay
-                        if response.status == 202 and attempt < retries - 1:
-                            logger.debug(f"HTTP 202 Accepted - retrying after delay")
-                            await asyncio.sleep(2)
-                            continue
-                        
-                        try:
-                            # SECURITY: Read with size limit
-                            content_bytes = await ResourceLimiter.read_limited(response)
-                            text = content_bytes.decode('utf-8', errors='ignore')
-                        except ValueError as e:
-                            # Size limit exceeded
-                            return {"status": 0, "text": "", "error": str(e), "ok": False}
-                        except UnicodeDecodeError:
-                            # Fallback for binary content
-                            text = str(await response.read())
+                    # Manual redirect handling
+                    current_url = url
+                    redirect_count = 0
+                    max_redirects = 5
+                    
+                    while redirect_count < max_redirects:
+                        # Validate current URL before fetching
+                        if not URLValidator.is_safe_url(current_url):
+                            logger.error(f"Blocked unsafe redirect URL: {current_url}")
+                            return {"status": 0, "text": "", "error": "Unsafe redirect blocked", "ok": False}
+
+                        async with session.request(
+                            method, 
+                            current_url, 
+                            headers=headers, 
+                            params=params, 
+                            data=data, 
+                            json=json_data,
+                            proxy=proxy,
+                            allow_redirects=False
+                        ) as response:
                             
-                        return {
-                            "status": response.status,
-                            "text": text,
-                            "headers": dict(response.headers),
-                            "url": str(response.url),
-                            "ok": response.status < 400
-                        }
+                            if response.status in (301, 302, 303, 307, 308):
+                                redirect_count += 1
+                                location = response.headers.get('Location')
+                                if not location:
+                                    pass # Treat as final response
+                                else:
+                                    current_url = urllib.parse.urljoin(current_url, location)
+                                    logger.debug(f"Following redirect to {current_url}")
+                                    continue
+                            
+                            # SECURITY: Check content length before downloading
+                            if not ResourceLimiter.check_content_length(dict(response.headers)):
+                                return {"status": 0, "text": "", "error": "Response too large", "ok": False}
+                            
+                            if response.status == 429:
+                                retry_after = int(response.headers.get("Retry-After", 5))
+                                logger.warning(f"Rate limited by {current_url}. Waiting {retry_after}s...")
+                                await asyncio.sleep(retry_after)
+                                break # Break inner loop to retry outer loop
+                            
+                            # 403 Forbidden might indicate a bad proxy or bot detection
+                            if response.status == 403 and proxy:
+                                logger.debug(f"Proxy {proxy} blocked by {current_url}")
+                                break # Break inner loop to retry outer loop
+                            
+                            # HTTP 202 Accepted - retry once with delay
+                            if response.status == 202 and attempt < retries - 1:
+                                logger.debug(f"HTTP 202 Accepted - retrying after delay")
+                                await asyncio.sleep(2)
+                                break # Break inner loop to retry outer loop
+                            
+                            try:
+                                # SECURITY: Read with size limit
+                                content_bytes = await ResourceLimiter.read_limited(response)
+                                text = content_bytes.decode('utf-8', errors='ignore')
+                            except ValueError as e:
+                                # Size limit exceeded
+                                return {"status": 0, "text": "", "error": str(e), "ok": False}
+                            except UnicodeDecodeError:
+                                # Fallback for binary content
+                                text = str(await response.read())
+                                
+                            return {
+                                "status": response.status,
+                                "text": text,
+                                "headers": dict(response.headers),
+                                "url": str(response.url),
+                                "ok": response.status < 400
+                            }
+                            
+                    if redirect_count >= max_redirects:
+                         return {"status": 0, "text": "", "error": "Too many redirects", "ok": False}
                         
                 except (aiohttp.ClientError, asyncio.TimeoutError, OSError) as e:
                     # Proxy errors often manifest as ClientProxyConnectionError, ServerDisconnectedError, etc.
