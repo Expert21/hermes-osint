@@ -8,7 +8,7 @@ with open(readme_path, "r", encoding="utf-8") as fh:
 
 setup(
     name="hermes-osint",
-    version="1.4",
+    version="1.4.1",
     author="Expert21",
     author_email="your.email@example.com",
     description="Advanced OSINT Intelligence Gathering Tool",
@@ -59,7 +59,4 @@ setup(
     },
     
     include_package_data=True,
-    package_data={
-        "": ["config.yaml"],
-    },
 )
