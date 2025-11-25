@@ -4,7 +4,7 @@
 
 Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designed for comprehensive digital footprint analysis. Named after the Greek messenger god, Hermes swiftly gathers intelligence across multiple platforms and presents it in professional, actionable reports.
 
-![Version](https://img.shields.io/badge/version-1.3.2-blue)
+![Version](https://img.shields.io/badge/version-1.4-blue)
 ![Python](https://img.shields.io/badge/python-3.7+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
@@ -149,7 +149,25 @@ hermes --clear-cache
 
 ## 📝 Release Notes
 
-### v1.3.2 - Proactive Logging Sanitization (Current Release)
+### v1.4 - Secure Configuration System (Current Release)
+
+**🔐 Encrypted Configuration Management:**
+- **`.env` Template Generation:** New `--init-env` command creates a comprehensive template with 20+ API key placeholders
+- **Secure Import:** `--import-env` command encrypts and stores all `.env` values using Fernet encryption
+- **Sync Validation:** Automatic `.env` integrity checking prevents running with out-of-sync configuration
+- **Comprehensive API Support:** Added support for Bing, Brave, Reddit, BuiltWith, URLScan, and more (20+ total APIs)
+- **Type Conversion:** Automatic type inference when applying configuration overrides (strings to bool/int/float)
+- **Security Audit:** All API key access now routed through `SecretsManager` - zero direct environment variable access
+- **Credential Priority:** Runtime env vars > Encrypted file > YAML config for maximum flexibility
+
+**Key Benefits:**
+- 🔒 API keys never stored in plain text
+- ✅ Enforced `.env` synchronization prevents configuration drift
+- 🚀 Simple setup with `--init-env` template
+- 🛡️ SHA-256 hash validation ensures `.env` integrity
+- 📦 All customization (timing, features, API keys) through single `.env` file
+
+### v1.3.2 - Proactive Logging Sanitization
 
 **🔒 Enhanced Privacy & Security:**
 - **Sanitizer Class:** Centralized proactive sanitization utility for all logging operations

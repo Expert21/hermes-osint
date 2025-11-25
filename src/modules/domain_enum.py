@@ -2,7 +2,6 @@ import dns.resolver
 import requests
 import time
 import logging
-import socket
 from typing import List, Dict, Set, Any
 
 logger = logging.getLogger("OSINT_Tool")
@@ -134,7 +133,7 @@ class DomainEnumerator:
                 self.results["subdomains"].add(subdomain)
                 logger.info(f"Found active subdomain: {subdomain}")
                 found_count += 1
-            except:
+            except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, dns.exception.Timeout):
                 pass
             
             # Rate limiting delay

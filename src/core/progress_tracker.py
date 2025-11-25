@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Optional, List
+from typing import Optional
 from tqdm import tqdm
 from contextlib import contextmanager
 

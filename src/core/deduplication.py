@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict
 from urllib.parse import urlparse, urlunparse
 from difflib import SequenceMatcher
 
@@ -241,7 +241,7 @@ class ResultDeduplicator:
             'high_quality_results': len([r for r in unique_results if r.get('quality_score', 0) >= 70])
         }
         
-        logger.info(f"Deduplication complete:")
+        logger.info("Deduplication complete:")
         logger.info(f"  Total results: {stats['total_original']} → {stats['total_unique']}")
         logger.info(f"  Average quality score: {stats['avg_quality_score']:.1f}/100")
         logger.info(f"  High quality results (≥70): {stats['high_quality_results']}")

@@ -5,6 +5,7 @@ import json
 import hmac
 import hashlib
 from typing import Optional, Dict
+from dotenv import dotenv_values
 
 try:
     from cryptography.fernet import Fernet
@@ -14,6 +15,11 @@ except ImportError:
     logging.warning("cryptography module not available - credential encryption disabled")
 
 logger = logging.getLogger("OSINT_Tool")
+
+
+class EnvSyncError(Exception):
+    """Raised when .env file is out of sync with encrypted storage."""
+    pass
 
 
 class SecretsManager:
@@ -34,6 +40,7 @@ class SecretsManager:
 
         self.hmac_salt = self._get_or_create_hmac_salt()
         self._cipher = None
+        self._env_hash_key = "_ENV_HASH"
     
     def _get_cipher(self):
         """Get or create Fernet cipher for encryption."""
@@ -219,6 +226,110 @@ class SecretsManager:
         
         self._write_encrypted(key_name, value)
         logger.info(f"✓ Credential '{key_name}' stored securely in {self.creds_file}")
+
+    def import_from_env_file(self, env_path: str = '.env'):
+        """
+        Import values from .env file into encrypted storage.
+        Also stores a hash of the .env file for sync validation.
+        """
+        env_file = Path(env_path)
+        if not env_file.exists():
+            logger.error(f"File not found: {env_path}")
+            return
+
+        # Calculate hash of the file content
+        with open(env_file, 'rb') as f:
+            content = f.read()
+            file_hash = hashlib.sha256(content).hexdigest()
+
+        # Load values
+        env_values = dotenv_values(env_path)
+        if not env_values:
+            logger.warning("No values found in .env file")
+            return
+
+        if not CRYPTO_AVAILABLE:
+            logger.error("Cannot store credentials - cryptography module not installed")
+            return
+
+        # Store values and hash
+        try:
+            cipher = self._get_cipher()
+            if not cipher:
+                return
+
+            # Read existing credentials
+            credentials = self._read_all_encrypted()
+            
+            # Update with new values
+            imported_count = 0
+            for key, value in env_values.items():
+                if value: # Only import non-empty values
+                    credentials[key] = value
+                    imported_count += 1
+            
+            # Update hash
+            credentials[self._env_hash_key] = file_hash
+
+            # Encrypt and save
+            self._save_credentials(credentials)
+            
+            logger.info(f"✓ Imported {imported_count} values from {env_path}")
+            logger.info("✓ Updated .env sync hash")
+            
+        except Exception as e:
+            logger.error(f"Failed to import from .env: {e}")
+
+    def validate_env_sync(self, env_path: str = '.env'):
+        """
+        Check if .env file matches the stored hash.
+        Raises EnvSyncError if out of sync.
+        """
+        env_file = Path(env_path)
+        if not env_file.exists():
+            return # No .env file, nothing to check
+
+        # Calculate current hash
+        with open(env_file, 'rb') as f:
+            content = f.read()
+            current_hash = hashlib.sha256(content).hexdigest()
+
+        # Get stored hash
+        credentials = self._read_all_encrypted()
+        stored_hash = credentials.get(self._env_hash_key)
+
+        if stored_hash != current_hash:
+            raise EnvSyncError(
+                "The .env file has changed but changes haven't been imported.\n"
+                "Run 'python main.py --import-env' to update secure storage."
+            )
+
+    def _save_credentials(self, credentials: Dict[str, str]):
+        """Helper to encrypt and save credentials dict."""
+        try:
+            cipher = self._get_cipher()
+            if not cipher:
+                return
+
+            # Encrypt
+            plaintext = json.dumps(credentials).encode()
+            encrypted_data = cipher.encrypt(plaintext)
+            
+            # Calculate HMAC
+            hmac_key = self._get_hmac_key()
+            if not hmac_key:
+                logger.error("Could not get HMAC key")
+                return
+                
+            calculated_hmac = hmac.new(hmac_key, encrypted_data, hashlib.sha256).digest()
+            
+            # Write HMAC + EncryptedData
+            self.creds_file.touch(mode=0o600)
+            with open(self.creds_file, 'wb') as f:
+                f.write(calculated_hmac + encrypted_data)
+        except Exception as e:
+            logger.error(f"Failed to save credentials: {e}")
+            raise
     
     def _read_encrypted(self, key_name: str) -> Optional[str]:
         """Read from encrypted credentials file."""

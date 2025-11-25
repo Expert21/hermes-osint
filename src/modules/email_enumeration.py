@@ -1,7 +1,7 @@
 import re
 import logging
 import asyncio
-from typing import List, Dict, Optional, Set, Any
+from typing import List, Dict, Optional, Any
 import dns.resolver
 from validators import email as validate_email_format
 from src.modules.passive_intelligence import PassiveIntelligenceModule

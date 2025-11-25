@@ -24,7 +24,19 @@ from src.core.interactive import run_interactive_mode
 
 async def main_async():
     parser = argparse.ArgumentParser(
-        description="OSINT Tool - Social Media & Web Search with Verification (v1.3.2)",
+        description="OSINT Tool - Social Media & Web Search with Verification (v1.4)",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    
+    # Required arguments
+    parser.add_argument("--target", help="Target name (individual or company)")
+from src.core.cache_manager import get_cache_manager
+from src.modules.domain_enum import run_domain_enumeration # Assuming this is still sync for now
+from src.core.interactive import run_interactive_mode
+
+async def main_async():
+    parser = argparse.ArgumentParser(
+        description="OSINT Tool - Social Media & Web Search with Verification (v1.4)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     

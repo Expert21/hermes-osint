@@ -1,9 +1,10 @@
-import os
 import yaml
 import logging
 import re
 from typing import Dict, Any, Optional
 from pathlib import Path
+import os
+from src.core.secrets_manager import SecretsManager
 
 logger = logging.getLogger("OSINT_Tool")
 
@@ -61,7 +62,24 @@ class ConfigManager:
         'api_keys': {
             'google_api_key': None,
             'google_cse_id': None,
-            'twitter_bearer_token': None
+            'twitter_bearer_token': None,
+            'hibp_api_key': None,
+            'facebook_access_token': None,
+            'instagram_access_token': None,
+            'github_access_token': None,
+            'linkedin_access_token': None,
+            'shodan_api_key': None,
+            'censys_api_id': None,
+            'censys_api_secret': None,
+            'virustotal_api_key': None,
+            'hunter_io_api_key': None,
+            'intelx_api_key': None,
+            'bing_api_key': None,
+            'brave_api_key': None,
+            'reddit_client_id': None,
+            'reddit_client_secret': None,
+            'builtwith_api_key': None,
+            'urlscan_api_key': None
         }
     }
     
@@ -133,6 +151,9 @@ class ConfigManager:
             
             # Merge with default config to ensure all keys exist
             config = self._merge_configs(self.DEFAULT_CONFIG, loaded_config)
+            
+            # Apply overrides from secrets/env
+            self._apply_env_overrides(config)
             
             logger.info(f"✓ Loaded configuration profile: {profile_name}")
             self.current_config = config
@@ -300,6 +321,142 @@ class ConfigManager:
                 result[key] = value
         
         return result
+
+    def _apply_env_overrides(self, config: Dict[str, Any]):
+        """
+        Apply overrides from SecretsManager (encrypted .env values) and actual environment variables.
+        """
+        secrets = SecretsManager()
+        
+        # 1. Get all stored credentials (which now include imported .env values)
+        stored_creds = secrets._read_all_encrypted()
+        
+        # 2. Get actual environment variables
+        env_vars = os.environ
+        
+        # Helper to flatten config for mapping, keeping track of the path
+        def flatten_config_with_path(cfg, parent_path=None, parent_key='', sep='_'):
+            items = []
+            if parent_path is None:
+                parent_path = []
+                
+            for k, v in cfg.items():
+                current_path = parent_path + [k]
+                new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                
+                if isinstance(v, dict):
+                    items.extend(flatten_config_with_path(v, current_path, new_key, sep=sep).items())
+                else:
+                    items.append((new_key.upper(), (current_path, v)))
+            return dict(items)
+
+        # Helper to set nested value using known path
+        def set_nested(cfg, keys, value):
+            for key in keys[:-1]:
+                cfg = cfg.setdefault(key, {})
+            cfg[keys[-1]] = value
+
+        # Flatten default config to know what keys exist, their types, and their paths
+        flat_defaults = flatten_config_with_path(self.DEFAULT_CONFIG)
+        
+        # Combine sources: Stored Secrets < Environment Variables
+        for flat_key, (key_path, default_val) in flat_defaults.items():
+            value_to_use = None
+            
+            # Check secrets/stored .env values
+            if flat_key in stored_creds:
+                value_to_use = stored_creds[flat_key]
+                
+            # Check actual environment variables (higher priority)
+            if flat_key in env_vars:
+                value_to_use = env_vars[flat_key]
+            
+            if value_to_use is not None:
+                # Type conversion
+                try:
+                    target_type = type(default_val)
+                    if target_type == bool:
+                        # Handle boolean strings
+                        if str(value_to_use).lower() in ('true', '1', 'yes', 'on'):
+                            converted_val = True
+                        elif str(value_to_use).lower() in ('false', '0', 'no', 'off'):
+                            converted_val = False
+                        else:
+                            converted_val = bool(value_to_use)
+                    elif target_type == type(None):
+                        # If default is None, try to infer or keep as string
+                        converted_val = value_to_use
+                    else:
+                        converted_val = target_type(value_to_use)
+                    
+                    # Set the value in the config dict using the preserved path
+                    set_nested(config, key_path, converted_val)
+                    logger.debug(f"Applied override for {flat_key}")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to convert override for {flat_key}: {e}")
+
+    def generate_env_template(self, path: str = '.env'):
+        """
+        Generate a .env template file with all configuration options.
+        """
+        template_lines = [
+            "# OSINT Tool Configuration Template",
+            "# Generated by --init-env",
+            "#",
+            "# Instructions:",
+            "# 1. Uncomment lines to override default values",
+            "# 2. Add your API keys",
+            "# 3. Run 'python main.py --import-env' to secure these settings",
+            "",
+            "# --- API Keys ---",
+            "# --- API Keys ---",
+            "GOOGLE_API_KEY=",
+            "GOOGLE_CSE_ID=",
+            "TWITTER_BEARER_TOKEN=",
+            "HIBP_API_KEY=",
+            "FACEBOOK_ACCESS_TOKEN=",
+            "INSTAGRAM_ACCESS_TOKEN=",
+            "GITHUB_ACCESS_TOKEN=",
+            "LINKEDIN_ACCESS_TOKEN=",
+            "SHODAN_API_KEY=",
+            "CENSYS_API_ID=",
+            "CENSYS_API_SECRET=",
+            "VIRUSTOTAL_API_KEY=",
+            "HUNTER_IO_API_KEY=",
+            "INTELX_API_KEY=",
+            "BING_API_KEY=",
+            "BRAVE_API_KEY=",
+            "REDDIT_CLIENT_ID=",
+            "REDDIT_CLIENT_SECRET=",
+            "BUILTWITH_API_KEY=",
+            "URLSCAN_API_KEY=",
+            "",
+            "# --- Configuration Options ---"
+        ]
+        
+        def flatten_for_template(cfg, parent_key=''):
+            items = []
+            for k, v in cfg.items():
+                new_key = f"{parent_key}_{k}" if parent_key else k
+                if isinstance(v, dict):
+                    if k != 'api_keys': # Skip api_keys as they are handled separately
+                        items.extend(flatten_for_template(v, new_key))
+                else:
+                    items.append((new_key.upper(), v))
+            return items
+
+        flat_config = flatten_for_template(self.DEFAULT_CONFIG)
+        
+        for key, value in flat_config:
+            template_lines.append(f"# {key}={value}")
+            
+        try:
+            with open(path, 'w') as f:
+                f.write('\n'.join(template_lines))
+            logger.info(f"✓ Generated .env template at {path}")
+        except Exception as e:
+            logger.error(f"Failed to generate .env template: {e}")
 
 
 # Convenience function

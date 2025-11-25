@@ -1,6 +1,5 @@
 import logging
 from typing import List, Set
-import re
 
 logger = logging.getLogger("OSINT_Tool")
 

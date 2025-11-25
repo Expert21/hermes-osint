@@ -1,5 +1,3 @@
-import sys
-import time
 from typing import Dict, Any, List
 import logging
 
@@ -75,7 +73,7 @@ class InteractiveWizard:
         """Run the interactive wizard and return configuration dictionary."""
         self.print_header()
         
-        print(f"Welcome to the guided scan mode. I'll help you configure your scan.\n")
+        print("Welcome to the guided scan mode. I'll help you configure your scan.\n")
         
         # 1. Target Information
         print(f"{Fore.MAGENTA}--- Target Information ---{Style.RESET_ALL}")

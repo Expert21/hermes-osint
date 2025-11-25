@@ -1,65 +1,10 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# OSINT Tool Specific
-.osint_cache/
-.osint_profiles/
-*.log
-report.*
-!report.json.example
-
-# Sensitive Data
 .env
-config.yaml
-proxies.txt
-*.enc
-credentials.*
-
-# Testing
+.osint_secrets/
+__pycache__/
+*.pyc
 .pytest_cache/
-.coverage
-htmlcov/
-*.cover
-.hypothesis/
-
-# Documentation
-docs/_build/
-
-# OS
-Thumbs.db
+.mypy_cache/
+.venv/
+.vscode/
+report.json
+proxies.txt

@@ -1,7 +1,7 @@
 import logging
 import json
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 logger = logging.getLogger("OSINT_Tool")
 

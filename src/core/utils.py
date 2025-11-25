@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from typing import Optional, Union
+from typing import Union
 
 def SafeSoup(html: Union[str, bytes], features: str = "html.parser", **kwargs) -> BeautifulSoup:
     """

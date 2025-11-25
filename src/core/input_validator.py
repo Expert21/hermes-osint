@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 from pathlib import Path
 import logging
 import os

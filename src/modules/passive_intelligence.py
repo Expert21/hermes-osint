@@ -1,14 +1,14 @@
 import asyncio
 import logging
 import json
-import os
 import urllib.parse
 from typing import List, Dict, Any, Optional
 from src.core.async_request_manager import AsyncRequestManager
 from src.modules.search_engines import AsyncSearchEngineManager
 from src.core.scan_logger import ScanLogger, EventType
 from src.core.rate_limiter import RateLimiter
-from src.core.utils import SafeSoup, Sanitizer
+from src.core.utils import Sanitizer
+from src.core.secrets_manager import SecretsManager
 
 logger = logging.getLogger("OSINT_Tool")
 
@@ -21,7 +21,9 @@ class PassiveIntelligenceModule:
     def __init__(self, scan_logger: Optional[ScanLogger] = None):
         self.request_manager = AsyncRequestManager()
         self.search_manager = AsyncSearchEngineManager()
-        self.hibp_api_key = os.getenv("HIBP_API_KEY")
+        # Load HIBP API key from SecretsManager
+        secrets = SecretsManager()
+        self.hibp_api_key = secrets.get_credential("hibp_api_key")
         self.scan_logger = scan_logger
         # Add rate limiters
         self.hibp_limiter = RateLimiter(max_calls=10, time_window=60)  # 10/min

@@ -4,10 +4,9 @@ import logging
 import random
 import secrets
 import os
-import ipaddress
 import urllib.parse
 import hashlib
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 from src.core.url_validator import URLValidator
 from src.core.resource_limiter import ResourceLimiter
 from src.core.utils import Sanitizer
@@ -253,7 +252,7 @@ class AsyncRequestManager:
                             
                             # HTTP 202 Accepted - retry once with delay
                             if response.status == 202 and attempt < retries - 1:
-                                logger.debug(f"HTTP 202 Accepted - retrying after delay")
+                                logger.debug("HTTP 202 Accepted - retrying after delay")
                                 await asyncio.sleep(2)
                                 break # Break inner loop to retry outer loop
                             
