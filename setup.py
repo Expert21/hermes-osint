@@ -24,7 +24,7 @@ setup(
         "Development Status :: 4 - Beta",
         "Intended Audience :: Information Technology",
         "Topic :: Security",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: GNU Affero General Public License v3",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",

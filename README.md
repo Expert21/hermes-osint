@@ -6,7 +6,7 @@ Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designe
 
 ![Version](https://img.shields.io/badge/version-1.4.1-blue)
 ![Python](https://img.shields.io/badge/python-3.7+-green)
-![License](https://img.shields.io/badge/license-MIT-orange)
+![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
 ---
 
@@ -382,7 +382,39 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Community Edition - AGPL-3.0
+
+Hermes OSINT Tool is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+This means:
+- ✅ **Free to use** for personal and commercial purposes
+- ✅ **Open source** - you can view, modify, and distribute the code
+- ✅ **Copyleft** - modifications must also be open-sourced under AGPL-3.0
+- ⚠️ **Network use = Distribution** - If you run Hermes as a service, you must share your code
+
+**Key AGPL-3.0 Requirement:** If you modify Hermes and offer it as a web service or SaaS, you **must** make your modified source code available to users.
+
+See the [LICENSE](LICENSE) file for full details.
+
+### Enterprise Edition - Commercial License
+
+Need to use Hermes without AGPL restrictions? We offer a **Commercial License** for:
+- 🏢 Running as a proprietary service without releasing source code
+- 🔒 Keeping your modifications and integrations private
+- 📞 Priority support and SLAs
+- ⚖️ Legal indemnification and compliance assistance
+
+**Interested in Enterprise?** Contact: your.email@example.com or see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for details.
+
+---
+
+### Why AGPL-3.0?
+
+We chose AGPL-3.0 to:
+1. Keep the core tool **free and open** for the security community
+2. Ensure improvements benefit everyone (unless you buy a commercial license)
+3. Prevent proprietary forks without contribution back
+4. Enable sustainable development through enterprise licensing
 
 ---
 
