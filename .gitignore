@@ -1,10 +1,44 @@
+# Environment and Secrets
 .env
 .osint_secrets/
+
+# Python Cache and Bytecode
 __pycache__/
 *.pyc
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+
+# Virtual Environment
 .venv/
+venv/
+env/
+
+# IDE
 .vscode/
+.idea/
+
+# OSINT Tool Specific
+.osint_cache/
+.osint_profiles/
 report.json
 proxies.txt
+
+# Python Build/Distribution
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Logs
+*.log
+
+# Editor Files
+*.swp
+*.swo
+*~
+*.bak
+
+# OS Files
+.DS_Store
+Thumbs.db
