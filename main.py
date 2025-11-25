@@ -49,6 +49,7 @@ async def main_async():
     parser.add_argument("--email", help="Known email for verification context")
     
     # Optional flags
+    parser.add_argument("--passive", action="store_true", help="Enable passive mode (stealth mode - no direct target contact)")
     parser.add_argument("--no-verify", action="store_true", help="Skip profile verification (faster)")
     parser.add_argument("--skip-search", action="store_true", help="Skip search engines")
     parser.add_argument("--skip-social", action="store_true", help="Skip social media")
@@ -176,7 +177,8 @@ async def main_async():
                 target_name=args.target,
                 domain=args.domain,
                 custom_domains=args.domains,
-                verify_mx=True
+                verify_mx=not args.passive,  # Skip MX verification in passive mode
+                passive_only=args.passive
             ))
             tasks.append(("email", email_task))
 
@@ -195,10 +197,13 @@ async def main_async():
                 variations = generate_username_variations(args.target, include_leet=args.include_leet, include_suffixes=args.include_suffixes)
                 target_names.extend(variations[:10])
             
-            if args.no_verify:
-                # Just check existence
+            # In passive mode, use passive-only checks (no direct platform contact)
+            if args.passive or args.no_verify:
+                # Just check existence (passive dorking in passive mode)
                 for name in target_names:
-                    social_task = asyncio.create_task(run_social_media_checks_async(name, args.type, config_dict))
+                    social_task = asyncio.create_task(run_social_media_checks_async(
+                        name, args.type, config_dict, passive_only=args.passive
+                    ))
                     tasks.append(("social", social_task))
             else:
                 # Check and Verify

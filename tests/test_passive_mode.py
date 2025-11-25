@@ -4,6 +4,7 @@ Demonstrates complete passive-only OSINT workflow.
 """
 import asyncio
 import logging
+import os
 from src.core.scan_logger import ScanLogger, EventType
 from src.modules.passive_intelligence import PassiveIntelligenceModule
 from src.modules.email_enumeration import run_email_enumeration_async
@@ -100,7 +101,8 @@ async def passive_mode_scan(target: str, target_type: str = "individual", domain
     scan_logger.print_summary()
     
     # Save scan log
-    scan_logger.save_log(f"passive_scan_{target.replace(' ', '_')}.json")
+    os.makedirs("tests/outputs", exist_ok=True)
+    scan_logger.save_log(f"tests/outputs/passive_scan_{target.replace(' ', '_')}.json")
     
     return results
 
@@ -118,10 +120,11 @@ async def main():
     )
     
     # Generate reports
+    os.makedirs("tests/outputs", exist_ok=True)
     print("\nGenerating reports...")
-    generate_html_report(results1, "passive_test_individual.html")
-    generate_markdown_report(results1, "passive_test_individual.md")
-    print("✓ Reports generated: passive_test_individual.html/md")
+    generate_html_report(results1, "tests/outputs/passive_test_individual.html")
+    generate_markdown_report(results1, "tests/outputs/passive_test_individual.md")
+    print("✓ Reports generated: tests/outputs/passive_test_individual.html/md")
     
     # Test 2: Company target
     print("\n\nTEST 2: Company Target")
@@ -132,9 +135,9 @@ async def main():
     )
     
     # Generate reports
-    generate_html_report(results2, "passive_test_company.html")
-    generate_markdown_report(results2, "passive_test_company.md")
-    print("✓ Reports generated: passive_test_company.html/md")
+    generate_html_report(results2, "tests/outputs/passive_test_company.html")
+    generate_markdown_report(results2, "tests/outputs/passive_test_company.md")
+    print("✓ Reports generated: tests/outputs/passive_test_company.html/md")
     
     print("\n" + "="*60)
     print("✓ PASSIVE MODE TEST COMPLETE")

@@ -3,6 +3,7 @@ Test scan logger functionality with passive intelligence module.
 """
 import asyncio
 import logging
+import os
 from src.core.scan_logger import ScanLogger, EventType
 from src.modules.passive_intelligence import PassiveIntelligenceModule
 
@@ -46,7 +47,8 @@ async def test_scan_logger():
     scan_logger.print_summary()
     
     # Save log
-    scan_logger.save_log("test_scan_log.json")
+    os.makedirs("tests/outputs", exist_ok=True)
+    scan_logger.save_log("tests/outputs/test_scan_log.json")
     
     print("\n✓ Scan logger test complete")
 

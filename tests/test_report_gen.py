@@ -32,8 +32,11 @@ def test_report_generation():
         ]
     }
     
+    # Create outputs directory
+    os.makedirs("tests/outputs", exist_ok=True)
+    
     # Test HTML
-    html_file = "test_report_v1.3.html"
+    html_file = "tests/outputs/test_report_v1.3.html"
     try:
         generate_html_report(results, html_file)
         if os.path.exists(html_file):
@@ -42,7 +45,7 @@ def test_report_generation():
         print(f"✗ HTML Generation Failed: {e}")
 
     # Test Markdown
-    md_file = "test_report_v1.3.md"
+    md_file = "tests/outputs/test_report_v1.3.md"
     try:
         generate_markdown_report(results, md_file)
         if os.path.exists(md_file):
@@ -57,7 +60,7 @@ def test_report_generation():
         print(f"✗ Markdown Generation Failed: {e}")
 
     # Test PDF
-    pdf_file = "test_report_v1.3.pdf"
+    pdf_file = "tests/outputs/test_report_v1.3.pdf"
     try:
         generate_pdf_report(results, pdf_file)
         if os.path.exists(pdf_file):
