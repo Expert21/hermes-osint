@@ -67,8 +67,12 @@ cd hermes-osint
 # Install dependencies
 pip install -r requirements.txt
 
-# Create configuration profiles
+# First-run setup: Create profiles and .env template
 hermes --create-profiles
+hermes --init-env
+
+# Edit .env with your API keys, then import
+hermes --import-env
 
 # Verify installation (test all modules)
 python hermes-test.py
@@ -253,33 +257,63 @@ hermes --clear-cache
 
 ## 🔧 Configuration
 
-### Creating Custom Profiles
+### v1.4: Environment-Based Configuration
 
-Edit `config.yaml` or create a new profile in `.osint_profiles/`:
+Hermes v1.4 uses `.env` files for configuration. Generate a template and import your settings:
 
-```yaml
-timing:
-  request_delay: 2.0
-  timeout: 10
-  
-platforms:
-  search_engines:
-    duckduckgo: true
-    bing: true
-  social_media:
-    linkedin: true
-    github: true
-    twitter: true
+```bash
+# Generate .env template with all available options
+hermes --init-env
 
-features:
-  email_enumeration: true
-  deduplication: true
-  progress_indicators: true
-  domain_enum: false
+# Edit .env file with your API keys and preferences
+# Then import and encrypt the settings
+hermes --import-env
 
-thresholds:
-  quality_score_minimum: 50
-  similarity_threshold: 0.85
+# Verify your configuration
+python verify_config.py
+```
+
+### Configuration Profiles
+
+Hermes provides three built-in scan profiles in `.osint_profiles/`:
+
+**Default Profile** - Balanced scanning with core features enabled
+**Quick Scan** - Fast scans with minimal verification (1-2s delays)
+**Deep Scan** - Comprehensive scanning with all features enabled (longer delays)
+
+Create profiles with:
+```bash
+hermes --create-profiles
+hermes --list-profiles
+```
+
+Use a specific profile:
+```bash
+hermes --target "johndoe" --type individual --config deep_scan
+```
+
+### .env Configuration Example
+
+```bash
+# API Keys (encrypted after import)
+GOOGLE_API_KEY=your_key_here
+TWITTER_BEARER_TOKEN=your_token_here
+GITHUB_ACCESS_TOKEN=your_token_here
+
+# Timing Configuration
+TIMING_MIN_DELAY=2.0
+TIMING_MAX_DELAY=5.0
+TIMING_TIMEOUT=15
+
+# Feature Toggles
+FEATURES_EMAIL_ENUMERATION=true
+FEATURES_VERIFICATION=true
+FEATURES_DEDUPLICATION=true
+
+# Platform Toggles
+PLATFORMS_SOCIAL_MEDIA_TWITTER=true
+PLATFORMS_SOCIAL_MEDIA_GITHUB=true
+PLATFORMS_SEARCH_ENGINES_DUCKDUCKGO=true
 ```
 
 ---
