@@ -123,7 +123,7 @@ A commercial license grants:
 ## 🚀 Getting Started
 
 ### Step 1: Contact Sales
-Email: **your.email@example.com**  
+Email: **isaiahmyles04@gmail.com**  
 Subject: "Hermes Enterprise License Inquiry"
 
 Include:
@@ -172,11 +172,11 @@ Receive enterprise access credentials, training, and dedicated support.
 ## 📞 Contact Information
 
 **Sales & Licensing:**  
-Email: your.email@example.com  
+Email: isaiahmyles04@gmail.com  
 Website: https://github.com/Expert21/hermes-osint
 
 **Technical Questions:**  
-Email: your.email@example.com  
+Email: isaiahmyles04@gmail.com  
 Discord: [Community Server Link]
 
 **Mailing Address:**  
@@ -194,3 +194,4 @@ This commercial license is offered by **Expert21** for the Hermes OSINT Tool.
 All enterprise features and commercial rights are proprietary to Expert21. Community Edition features remain available under AGPL-3.0.
 
 **Copyright © 2025 Expert21. All Rights Reserved.**
+

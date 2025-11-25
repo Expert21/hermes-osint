@@ -10,7 +10,7 @@ setup(
     name="hermes-osint",
     version="1.4.1",
     author="Expert21",
-    author_email="your.email@example.com",
+    author_email="isaiahmyles04@gmail.com",
     description="Advanced OSINT Intelligence Gathering Tool",
     long_description=long_description,
     long_description_content_type="text/markdown",

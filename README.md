@@ -404,7 +404,7 @@ Need to use Hermes without AGPL restrictions? We offer a **Commercial License** 
 - 📞 Priority support and SLAs
 - ⚖️ Legal indemnification and compliance assistance
 
-**Interested in Enterprise?** Contact: your.email@example.com or see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for details.
+**Interested in Enterprise?** Contact: isaiahmyles04@gmail.com or see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) for details.
 
 ---
 
@@ -433,3 +433,4 @@ For questions, issues, or feature requests, please open an issue on GitHub.
 ---
 
 **Hermes** - *Swift Intelligence, Divine Insights* 🕊️
+
