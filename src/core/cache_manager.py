@@ -75,18 +75,6 @@ class CacheManager:
         
         Args:
             target: Target name
-            platform: Platform name
-            extra: Additional data to include in key
-            
-        Returns:
-            MD5 hash as cache key
-        """
-        key_data = f"{target.lower()}:{platform.lower()}:{extra}".encode('utf-8')
-        return hashlib.md5(key_data).hexdigest()
-    
-    def get(self, target: str, platform: str, extra: str = "") -> Optional[Dict[str, Any]]:
-        """
-        Retrieve cached result if it exists and hasn't expired.
         
         Args:
             target: Target name

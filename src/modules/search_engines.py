@@ -303,6 +303,248 @@ class AsyncSearchEngineManager:
         
         return results
 
+    async def search_mojeek(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        results = []
+        query = self._validate_query(query)
+        encoded_query = quote_plus(query)
+        url = f"https://www.mojeek.com/search?q={encoded_query}"
+        
+        html_content = await self._fetch_content(url, use_js)
+        if not html_content:
+            return []
+
+        try:
+            soup = SafeSoup(html_content)
+            search_results = soup.find_all('li', class_='result')
+            
+            for result in search_results[:num_results]:
+                title_elem = result.find('a', class_='title')
+                snippet_elem = result.find('p', class_='s')
+                
+                if title_elem:
+                    title = title_elem.get_text(strip=True)
+                    link = title_elem.get('href', '')
+                    snippet = snippet_elem.get_text(strip=True) if snippet_elem else ""
+                    
+                    results.append({
+                        "source": "Mojeek",
+                        "title": title,
+                        "url": link,
+                        "description": snippet
+                    })
+        except Exception as e:
+            logger.error(f"Mojeek search error: {e}")
+        
+        return results
+
+    async def search_searxng(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        # Using a public instance for now, ideally configurable
+        results = []
+        query = self._validate_query(query)
+        encoded_query = quote_plus(query)
+        url = f"https://searx.be/search?q={encoded_query}&format=json"
+        
+        try:
+            # SearxNG supports JSON output
+            response = await self.request_manager.fetch(url)
+            if response["ok"]:
+                data = response.get("json", {})
+                for result in data.get('results', [])[:num_results]:
+                    results.append({
+                        "source": "SearxNG",
+                        "title": result.get('title', ''),
+                        "url": result.get('url', ''),
+                        "description": result.get('content', '')
+                    })
+        except Exception as e:
+            logger.error(f"SearxNG search error: {e}")
+        
+        return results
+
+    async def search_publicwww(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        results = []
+        query = self._validate_query(query)
+        encoded_query = quote_plus(query)
+        url = f"https://publicwww.com/websites/{encoded_query}/"
+        
+        html_content = await self._fetch_content(url, use_js)
+        if not html_content:
+            return []
+
+        try:
+            soup = SafeSoup(html_content)
+            search_results = soup.find_all('tr')
+            
+            for result in search_results[:num_results]:
+                link_elem = result.find('a')
+                if link_elem and 'href' in link_elem.attrs:
+                    link = link_elem['href']
+                    title = link_elem.get_text(strip=True)
+                    snippet_elem = result.find('td', class_='snippet') # Hypothetical class
+                    snippet = snippet_elem.get_text(strip=True) if snippet_elem else f"Source code match for {query}"
+                    
+                    results.append({
+                        "source": "PublicWWW",
+                        "title": title,
+                        "url": link,
+                        "description": snippet
+                    })
+        except Exception as e:
+            logger.error(f"PublicWWW search error: {e}")
+        
+        return results
+
+    async def search_wayback(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        results = []
+        # Wayback CDX API
+        url = f"http://web.archive.org/cdx/search/cdx?url={query}*&output=json&limit={num_results}&collapse=urlkey"
+        
+        try:
+            response = await self.request_manager.fetch(url)
+            if response["ok"]:
+                data = response.get("json", [])
+                if data and len(data) > 1: # Header is first row
+                    for row in data[1:]:
+                        # format: urlkey, timestamp, original, mimetype, statuscode, digest, length
+                        original_url = row[2]
+                        timestamp = row[1]
+                        wayback_url = f"https://web.archive.org/web/{timestamp}/{original_url}"
+                        
+                        results.append({
+                            "source": "Wayback Machine",
+                            "title": f"Snapshot: {timestamp}",
+                            "url": wayback_url,
+                            "description": f"Archived version of {original_url}"
+                        })
+        except Exception as e:
+            logger.error(f"Wayback Machine search error: {e}")
+        
+        return results
+
+    async def search_archive_today(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        results = []
+        query = self._validate_query(query)
+        encoded_query = quote_plus(query)
+        url = f"https://archive.today/search/?q={encoded_query}"
+        
+        html_content = await self._fetch_content(url, use_js)
+        if not html_content:
+            return []
+
+        try:
+            soup = SafeSoup(html_content)
+            search_results = soup.find_all('div', class_='TEXT-BLOCK')
+            
+            for result in search_results[:num_results]:
+                link_elem = result.find('a')
+                if link_elem:
+                    link = link_elem.get('href', '')
+                    title = link_elem.get_text(strip=True)
+                    
+                    results.append({
+                        "source": "Archive.today",
+                        "title": title,
+                        "url": link,
+                        "description": "Archived snapshot"
+                    })
+        except Exception as e:
+            logger.error(f"Archive.today search error: {e}")
+        
+        return results
+
+    async def search_commoncrawl(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        results = []
+        # Using Common Crawl Index API (latest index)
+        # Note: This usually requires a specific index ID, defaulting to a recent one or generic endpoint if available
+        # For simplicity/stability, we might skip complex index lookup and use a known index or a different provider
+        # Using a public CC search interface or API wrapper is better. 
+        # Fallback to a simpler implementation or placeholder if direct API is too complex for this snippet.
+        # Let's use the index server directly for a domain search
+        
+        index_url = "https://index.commoncrawl.org/CC-MAIN-2023-50-index?url={query}/*&output=json&limit={num_results}"
+        # NOTE: Index changes. Ideally we fetch the latest index list first.
+        
+        try:
+            # Quick fetch of latest index
+            idx_list_resp = await self.request_manager.fetch("https://index.commoncrawl.org/collinfo.json")
+            if idx_list_resp["ok"]:
+                indexes = idx_list_resp.get("json", [])
+                if indexes:
+                    latest_idx = indexes[0]['id']
+                    url = f"https://index.commoncrawl.org/{latest_idx}-index?url={query}/*&output=json&limit={num_results}"
+                    
+                    response = await self.request_manager.fetch(url)
+                    if response["ok"]:
+                        # Response is line-delimited JSON
+                        for line in response["text"].strip().split('\n'):
+                            if not line: continue
+                            try:
+                                record = line # It's actually JSON string, need to parse if not auto-parsed
+                                import json
+                                data = json.loads(line)
+                                
+                                results.append({
+                                    "source": "Common Crawl",
+                                    "title": f"Crawl Record: {data.get('timestamp')}",
+                                    "url": data.get('url'),
+                                    "description": f"Mime: {data.get('mime')}, Status: {data.get('status')}"
+                                })
+                            except: pass
+        except Exception as e:
+            logger.error(f"Common Crawl search error: {e}")
+            
+        return results
+
+    async def search_custom(self, engine_config: Dict, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
+        results = []
+        try:
+            name = engine_config.get('name', 'Custom')
+            url_template = engine_config.get('url')
+            selectors = engine_config.get('selectors', {})
+            
+            if not url_template or not selectors:
+                return []
+                
+            query = self._validate_query(query)
+            encoded_query = quote_plus(query)
+            url = url_template.replace('{query}', encoded_query)
+            
+            html_content = await self._fetch_content(url, use_js)
+            if not html_content:
+                return []
+                
+            soup = SafeSoup(html_content)
+            container_sel = selectors.get('container')
+            
+            if container_sel:
+                search_results = soup.select(container_sel)
+                for result in search_results[:num_results]:
+                    title_sel = selectors.get('title')
+                    link_sel = selectors.get('link')
+                    snippet_sel = selectors.get('snippet')
+                    
+                    title = result.select_one(title_sel).get_text(strip=True) if title_sel and result.select_one(title_sel) else "No Title"
+                    
+                    link = ""
+                    if link_sel:
+                        link_elem = result.select_one(link_sel)
+                        if link_elem:
+                            link = link_elem.get('href', '')
+                            
+                    snippet = result.select_one(snippet_sel).get_text(strip=True) if snippet_sel and result.select_one(snippet_sel) else ""
+                    
+                    if link:
+                        results.append({
+                            "source": name,
+                            "title": title,
+                            "url": link,
+                            "description": snippet
+                        })
+        except Exception as e:
+            logger.error(f"Custom engine search error: {e}")
+            
+        return results
+
     async def search_all(self, query: str, num_results: int = 10, use_js: bool = False) -> List[Dict[str, str]]:
         """Run all search engines concurrently"""
         tasks = [
@@ -311,7 +553,13 @@ class AsyncSearchEngineManager:
             self.search_yahoo(query, num_results, use_js),
             self.search_brave(query, num_results, use_js),
             self.search_startpage(query, num_results, use_js),
-            self.search_yandex(query, num_results, use_js)
+            self.search_yandex(query, num_results, use_js),
+            self.search_mojeek(query, num_results, use_js),
+            self.search_searxng(query, num_results, use_js),
+            self.search_publicwww(query, num_results, use_js),
+            self.search_wayback(query, num_results, use_js),
+            self.search_archive_today(query, num_results, use_js),
+            self.search_commoncrawl(query, num_results, use_js)
         ]
         
         logger.info(f"Launching async search for: {Sanitizer.truncate(query)}")

@@ -36,9 +36,16 @@ class ConfigManager:
             },
             'search_engines': {
                 'duckduckgo': True,
-                'bing': True
+                'bing': True,
+                'mojeek': True,
+                'searxng': True,
+                'publicwww': True,
+                'wayback': True,
+                'archive_today': True,
+                'commoncrawl': True
             }
         },
+        'custom_search_engines': [],
         'features': {
             'email_enumeration': True,
             'username_variations': False,
@@ -329,7 +336,7 @@ class ConfigManager:
         secrets = SecretsManager()
         
         # 1. Get all stored credentials (which now include imported .env values)
-        stored_creds = secrets._read_all_encrypted()
+        stored_creds = secrets._read_all_encrypted_file()
         
         # 2. Get actual environment variables
         env_vars = os.environ

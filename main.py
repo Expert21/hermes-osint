@@ -8,6 +8,8 @@ from src.core.config_manager import ConfigManager
 from src.core.progress_tracker import get_progress_tracker
 from src.core.deduplication import deduplicate_and_correlate
 from src.core.async_request_manager import AsyncRequestManager
+from src.core.proxy_manager import ProxyManager
+from src.core.secrets_manager import SecretsManager
 
 # Async Module Imports
 from src.modules.search_engines import run_search_engines_async
@@ -15,28 +17,18 @@ from src.modules.social_media import run_social_media_checks_async
 from src.modules.email_enumeration import run_email_enumeration_async
 from src.modules.profile_verification import enhanced_social_media_check_with_verification_async
 from src.reporting.generator import generate_report
+from src.core.input_validator import InputValidator
 
 # Priority 2 & 3 imports (Keep sync for now if not critical, or refactor later)
 from src.modules.username_generator import generate_username_variations
 from src.core.cache_manager import get_cache_manager
 from src.modules.domain_enum import run_domain_enumeration # Assuming this is still sync for now
 from src.core.interactive import run_interactive_mode
-
-async def main_async():
-    parser = argparse.ArgumentParser(
-        description="OSINT Tool - Social Media & Web Search with Verification (v1.4)",
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    # Required arguments
-    parser.add_argument("--target", help="Target name (individual or company)")
-from src.core.cache_manager import get_cache_manager
-from src.modules.domain_enum import run_domain_enumeration # Assuming this is still sync for now
 from src.core.interactive import run_interactive_mode
 
 async def main_async():
     parser = argparse.ArgumentParser(
-        description="OSINT Tool - Social Media & Web Search with Verification (v1.4)",
+        description="OSINT Tool - Social Media & Web Search with Verification (v1.4.1)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -85,6 +77,13 @@ async def main_async():
     # Proxy Configuration
     parser.add_argument("--proxies", help="Path to proxy list file")
     parser.add_argument("--fetch-proxies", action="store_true", help="Fetch free proxies and save to file")
+
+    # Phase 1: Docker Orchestration
+    parser.add_argument("--mode", choices=["native", "docker"], default="native", help="Execution mode")
+    parser.add_argument("--tool", choices=["sherlock", "theharvester"], help="Specific tool to run in Docker mode")
+    
+    # Environment Management
+    parser.add_argument("--import-env", action="store_true", help="Import .env file values into secure encrypted storage")
     
     args = parser.parse_args()
     
@@ -101,6 +100,21 @@ async def main_async():
     
     # Handle configuration profile commands
     config_manager = ConfigManager()
+    
+    # Initialize proxy manager from environment variables
+    secrets_manager = SecretsManager()
+    proxy_manager = ProxyManager.load_from_env(secrets_manager)
+    if proxy_manager.providers:
+        logger.info(f"Loaded {len(proxy_manager.providers)} proxy provider(s)")
+        await proxy_manager.initialize()
+    
+    # Handle environment import
+    if args.import_env:
+        logger.info("Importing .env file into secure storage...")
+        secrets_manager.import_from_env_file('.env')
+        logger.info("✓ Environment variables imported successfully")
+        logger.info("You can now run hermes commands with encrypted credentials")
+        return 0
     
     if args.create_profiles:
         config_manager.create_default_profile()
@@ -130,17 +144,50 @@ async def main_async():
         logger.info(f"  Total Entries: {stats['total_entries']}")
         return 0
     
-    # Validate required arguments (unless fetching proxies)
-    if args.fetch_proxies:
-        # Just fetch proxies and exit
-        logger.info("Fetching free proxies...")
-        manager = AsyncRequestManager(proxy_file=args.proxies or "proxies.txt", auto_fetch_proxies=True)
-        await manager.fetch_free_proxies()
-        await manager.close()
-        return 0
+    # Validate required arguments
+
+    # Handle Docker Mode
+    if args.mode == "docker":
+        if not args.tool:
+            logger.error("Docker mode requires --tool argument")
+            return 1
+            
+        logger.info(f"Starting Docker execution for {args.tool} against {args.target}")
+        try:
+            from src.orchestration.docker_manager import DockerManager
+            from src.orchestration.adapters.sherlock_adapter import SherlockAdapter
+            from src.orchestration.adapters.theharvester_adapter import TheHarvesterAdapter
+            
+            docker_manager = DockerManager()
+        except ImportError:
+            logger.error("Docker module not found. Please install 'docker' package.")
+            return 1
+        
+        if not docker_manager.is_available:
+            logger.error("Docker is not available. Please ensure Docker is installed and running.")
+            return 1
+            
+        try:
+            results = {}
+            if args.tool == "sherlock":
+                adapter = SherlockAdapter(docker_manager)
+                results = adapter.execute(args.target, {})
+            elif args.tool == "theharvester":
+                adapter = TheHarvesterAdapter(docker_manager)
+                results = adapter.execute(args.target, {})
+                
+            logger.info(f"Execution complete. Results: {results}")
+            return 0
+        except Exception as e:
+            logger.error(f"Docker execution failed: {e}")
+            return 1
 
     if not args.target or not args.type:
         parser.error("the following arguments are required: --target, --type")
+    try:
+        args.target = InputValidator.validate_target_name(args.target)
+    except ValueError as e:
+        parser.error(str(e))
         
     # Load configuration
     if args.config:
@@ -161,11 +208,9 @@ async def main_async():
         "domain_data": {}
     }
     
-    # Initialize Async Request Manager with Proxy Config
-    proxy_file = args.proxies or config_dict.get('proxy', {}).get('file', 'proxies.txt')
-    auto_fetch = config_dict.get('proxy', {}).get('auto_fetch', False)
     
-    request_manager = AsyncRequestManager(proxy_file=proxy_file, auto_fetch_proxies=auto_fetch)
+    # Initialize Async Request Manager with Proxy Manager
+    request_manager = AsyncRequestManager(proxy_manager=proxy_manager)
     
     try:
         tasks = []
@@ -284,6 +329,20 @@ async def main_async():
     return 0
 
 def main():
+    # Check if no arguments are provided (only script name)
+    if len(sys.argv) == 1:
+        try:
+            from src.tui.app import HermesApp
+            app = HermesApp()
+            app.run()
+            return 0
+        except ImportError:
+            print("TUI dependencies not found. Please install 'textual'.")
+            return 1
+        except Exception as e:
+            print(f"Failed to launch TUI: {e}")
+            return 1
+
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:

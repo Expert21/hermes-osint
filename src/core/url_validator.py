@@ -95,6 +95,34 @@ class URLValidator:
                 if ip.is_reserved:
                     logger.warning(f"Blocked reserved IP address: {ip}")
                     return False
+
+                # Block Cloud Metadata Services (AWS, GCP, Azure, etc.)
+                # 169.254.169.254 is the magic IP for instance metadata
+                if str(ip) == "169.254.169.254":
+                    logger.warning(f"Blocked cloud metadata IP: {ip}")
+                    return False
+                    
+                # Block Shared Address Space (CGNAT) - 100.64.0.0/10
+                if ip in ipaddress.ip_network("100.64.0.0/10"):
+                    logger.warning(f"Blocked CGNAT IP address: {ip}")
+                    return False
+                
+                # Block Benchmarking - 198.18.0.0/15
+                if ip in ipaddress.ip_network("198.18.0.0/15"):
+                    logger.warning(f"Blocked benchmarking IP address: {ip}")
+                    return False
+                
+                # Block Test-Net - 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24
+                test_nets = ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"]
+                for net in test_nets:
+                    if ip in ipaddress.ip_network(net):
+                        logger.warning(f"Blocked test-net IP address: {ip}")
+                        return False
+                
+                # Block IPv6 Unique Local Addresses (fc00::/7)
+                if ip.version == 6 and ip in ipaddress.ip_network("fc00::/7"):
+                    logger.warning(f"Blocked IPv6 ULA address: {ip}")
+                    return False
                 
             except socket.gaierror as e:
                 logger.warning(f"Cannot resolve hostname '{hostname}': {e}")
