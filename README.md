@@ -4,7 +4,7 @@
 
 Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designed for comprehensive digital footprint analysis. Named after the Greek messenger god, Hermes swiftly gathers intelligence across multiple platforms and presents it in professional, actionable reports.
 
-![Version](https://img.shields.io/badge/version-1.4.1-blue)
+![Version](https://img.shields.io/badge/version-1.5-blue)
 ![Python](https://img.shields.io/badge/python-3.7+-green)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
@@ -26,6 +26,7 @@ Hermes is a comprehensive OSINT framework that automates the process of gatherin
 - 🎭 **Username Variations** - Test multiple username patterns including leet speak
 - ⚡ **Smart Caching** - Avoid redundant requests with 24-hour intelligent caching
 - 🧙 **Interactive Mode** - Guided wizard for easy configuration
+- 🐳 **Docker Orchestration** - Securely run external tools in isolated containers
 
 ---
 
@@ -54,6 +55,8 @@ Hermes is a comprehensive OSINT framework that automates the process of gatherin
 **🧙 Interactive Wizard** - Guided configuration with smart defaults
 
 **📝 Configuration Profiles** - Default, Quick Scan, Deep Scan, or custom with YAML-based settings
+
+**⛓️ Sequential Execution** - Chain tools together for complex workflows (e.g., Domain -> Email -> Breach Check)
 
 ---
 
@@ -155,16 +158,16 @@ hermes --clear-cache
 
 ## 📝 Current Release
 
-### v1.4.1 - Repository Cleanup & Configuration Refinement
+### v1.5 - Foundation & Orchestration
 
-**Latest stable release** with enhanced security and configuration management.
+**Latest stable release** focusing on core stability and tool orchestration.
 
 **Key Features:**
-- Environment-based configuration via `.env` files
-- Encrypted credential storage
-- Proactive log sanitization for PII protection
-- Configuration profile system (Default, Quick Scan, Deep Scan)
-- Enhanced test coverage and code quality
+- **h8mail Integration**: New Docker adapter for email breach hunting and password analysis.
+- **Sequential Execution**: `WorkflowManager` enables chaining tools (e.g., `theHarvester` -> `h8mail`).
+- **Core Stability**: Resolved merge conflicts in logging, caching, rate limiting, and secrets management.
+- **Docker Security**: Enhanced container isolation and whitelist management.
+- **TUI Improvements**: Fixed style conflicts for a consistent user interface.
 
 **For complete version history and detailed changelogs, see [CHANGELOG.md](CHANGELOG.md)**
 
