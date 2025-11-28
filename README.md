@@ -8,6 +8,8 @@ Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designe
 ![Python](https://img.shields.io/badge/python-3.7+-green)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
+> **🚧 Development Notice:** Hermes v2.0 is currently in active development with significant improvements and new capabilities. Stay tuned for updates!
+
 ---
 
 ## 🎯 What is Hermes?
@@ -151,122 +153,20 @@ hermes --clear-cache
 
 ---
 
-## 📝 Release Notes
+## 📝 Current Release
 
-### v1.4.1 - Repository Cleanup & Configuration Refinement (Current Release)
+### v1.4.1 - Repository Cleanup & Configuration Refinement
 
-**🧹 Repository Hygiene & Documentation:**
-- **Enhanced `.gitignore`:** Comprehensive patterns for cache directories (`.osint_cache`, `.osint_profiles`, `.ruff_cache`), build artifacts (`*.egg-info`, `dist/`, `build/`), test outputs, OS files, and editor temporary files
-- **Repository Cleanup:** Removed 40+ tracked files that should have been ignored (cache files, build artifacts, test outputs)
-- **Removed `config.yaml`:** Eliminated redundant configuration file - v1.4+ uses `.env` exclusively for user configuration
-- **Updated Documentation:** Enhanced README with clear first-run setup workflow (`--create-profiles`, `--init-env`, `--import-env`)
-- **Package Optimization:** Removed obsolete `package_data` from `setup.py` - profiles now generated on-demand
+**Latest stable release** with enhanced security and configuration management.
 
-**Key Benefits:**
-- 🧹 Cleaner repository with proper gitignore coverage
-- 📚 Simplified configuration architecture (`.env` only)
-- 🚀 Clear onboarding workflow for new users
-- 📦 Leaner package distribution
+**Key Features:**
+- Environment-based configuration via `.env` files
+- Encrypted credential storage
+- Proactive log sanitization for PII protection
+- Configuration profile system (Default, Quick Scan, Deep Scan)
+- Enhanced test coverage and code quality
 
-### v1.4 - Secure Configuration System
-
-**🔐 Encrypted Configuration Management:**
-- **`.env` Template Generation:** New `--init-env` command creates a comprehensive template with 20+ API key placeholders
-- **Secure Import:** `--import-env` command encrypts and stores all `.env` values using Fernet encryption
-- **Sync Validation:** Automatic `.env` integrity checking prevents running with out-of-sync configuration
-- **Comprehensive API Support:** Added support for Bing, Brave, Reddit, BuiltWith, URLScan, and more (20+ total APIs)
-- **Type Conversion:** Automatic type inference when applying configuration overrides (strings to bool/int/float)
-- **Security Audit:** All API key access now routed through `SecretsManager` - zero direct environment variable access
-- **Credential Priority:** Runtime env vars > Encrypted file > YAML config for maximum flexibility
-
-**Key Benefits:**
-- 🔒 API keys never stored in plain text
-- ✅ Enforced `.env` synchronization prevents configuration drift
-- 🚀 Simple setup with `--init-env` template
-- 🛡️ SHA-256 hash validation ensures `.env` integrity
-- 📦 All customization (timing, features, API keys) through single `.env` file
-
-### v1.3.2 - Proactive Logging Sanitization
-
-**🔒 Enhanced Privacy & Security:**
-- **Sanitizer Class:** Centralized proactive sanitization utility for all logging operations
-- **URL Query Masking:** All query parameters sanitized in logs (e.g., `?api_key=***`, `?q=***`)
-- **Response Truncation:** Long response bodies automatically truncated to 500 chars in logs
-- **Email Masking:** Email addresses redacted in logs (e.g., `jo***@example.com`)
-- **API Key Redaction:** Enhanced key masking showing only first/last 4 characters
-- **Sanitization Coverage:** Updated `AsyncRequestManager`, `search_engines`, and `passive_intelligence` modules
-- **Import Fixes:** Corrected relative imports in `profile_verification.py` for better compatibility
-- **Test Coverage:** All security implementations verified with comprehensive test suite
-
-**Key Benefits:**
-- 🛡️ Prevents PII leakage in log files
-- 🔍 Maintains log readability while protecting sensitive data
-- 📊 Consistent sanitization rules across entire codebase
-- ✅ Proactive security at call-site vs reactive filtering
-
-### v1.3.1 - Security Hardening
-
-**🔒 Enhanced Security Fixes:**
-- **API Key Redaction:** Sensitive credentials masked in all log output (4+2 character format)
-- **Cache Race Condition:** Retry logic with exponential backoff prevents data loss under rate limiting
-- **Redirect Validation:** Manual redirect handling blocks SSRF attacks to private IPs
-- **PGP Parser DoS:** Length limits and sanitization prevent denial-of-service attacks
-- **Proxy Integrity:** SHA-256 checksum verification for fetched proxy lists
-- **Secrets Validation:** HMAC integrity checking for encrypted credentials
-- **XXE Prevention:** SafeSoup wrapper eliminates XML entity expansion vulnerabilities
-- **Architecture:** Removed singleton pattern from AsyncRequestManager for better testability
-
-**Testing:** All 8 security fixes verified with comprehensive unit tests.
-
-### v1.3.0 - Intelligence Refactor
-
-**🧠 Three-Tier Intelligence Architecture:**
-- **Passive Intelligence Module:** New stealth-first data gathering via HIBP breach data, PGP keyservers, and search engine dorking
-- **Email Enumeration Refactor:** Passive-first logic checks breaches/PGP before MX validation, reducing noise and rate limits
-- **Social Media Refactor:** Two-tier approach (passive dorking → active verification) with exponential backoff rate limiting
-- **Tiered Reporting:** Visual confidence scoring with green (confirmed) vs yellow (possible) badges, source metadata tags
-- **Scan Logger:** Structured JSON/CSV logging of all scan events, API errors, rate limits, and timeouts
-- **Stealth Mode:** `--passive` flag for OPSEC-sensitive investigations (no direct target contact)
-- **Enhanced Error Handling:** Graceful degradation with specific handling for rate limits, timeouts, and API errors
-
-**Key Benefits:**
-- 🎯 Higher quality results with confidence scoring (0.0-1.0)
-- 🚀 Reduced rate limiting through passive-first approach
-- 🔍 Better data provenance (HIBP, PGP, Dork, Active Check)
-- 📊 Clearer reporting with confirmed vs possible separation
-
-### v1.2.2 - Security Hardening
-
-**🔒 Security Hardening (Medium & Low Severity):**
-- **Input Validation:** Integrated `InputValidator` to sanitize all CLI arguments and prevent injection
-- **Log Sanitization:** Implemented `SanitizingFormatter` to redact API keys, emails, and IPs from logs
-- **Browser Security:** Hardened Playwright launch configuration (no-sandbox, context isolation, anti-fingerprinting)
-- **Report Security:** Added CSP, X-Frame-Options, and other security headers to HTML reports
-- **Error Handling:** Implemented generic user-facing error messages with secure internal logging
-- **Dependencies:** Pinned all dependencies to secure versions
-
-### v1.2.1 - Critical Security Patches
-
-**🛡️ Critical & High Severity Fixes:**
-- **Credential Encryption:** Implemented Fernet encryption for secure credential storage
-- **SSRF & Injection Protection:** Added comprehensive URL validation and command injection prevention
-- **YAML Security:** Fixed path traversal and deserialization vulnerabilities in configuration loading
-- **DoS Protection:** Implemented resource limits and proxy validation with IP filtering
-
-### v1.2.0 - Async Performance
-
-- Complete async/await implementation
-- Proxy rotation with auto-fetch
-- JavaScript rendering via Playwright
-- Enhanced rate limit evasion
-- 10x performance improvement
-
-### v1.1.1 - Initial Release
-
-- Multi-platform OSINT scanning
-- Email enumeration and validation
-- Profile verification
-- Multiple output formats
+**For complete version history and detailed changelogs, see [CHANGELOG.md](CHANGELOG.md)**
 
 ---
 

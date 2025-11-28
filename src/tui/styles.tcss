@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Hermes TUI Styles */
 
 $primary-accent: #E7C547;
@@ -96,3 +97,126 @@ Static {
     height: auto;
     margin-bottom: 1;
 }
+=======
+/* Hermes TUI Styles */
+
+$primary-accent: #E7C547;
+$secondary-accent: #C44A3D;
+$background: #131313;
+$text: #F8F4E3;
+$borders: #8A6E45;
+
+Screen {
+    background: $background;
+    color: $text;
+}
+
+/* Main Layout */
+#main-layout {
+    width: 100%;
+    height: 100%;
+}
+
+/* Sidebar / Form Area */
+#sidebar {
+    dock: left;
+    width: 40;
+    height: 100%;
+    background: $background;
+    border-right: solid $borders;
+    padding: 1 2;
+    overflow-y: auto;
+    scrollbar-background: $background;
+    scrollbar-color: $borders;
+}
+
+.sidebar-title {
+    text-align: center;
+    color: $primary-accent;
+    text-style: bold;
+    margin-bottom: 1;
+    border-bottom: solid $borders;
+    padding-bottom: 1;
+}
+
+.section-header {
+    color: $primary-accent;
+    text-style: bold;
+    margin-top: 1;
+    margin-bottom: 1;
+    border-bottom: dashed $borders;
+}
+
+.form-row {
+    height: 3;
+    margin-bottom: 1;
+    layout: horizontal;
+}
+
+.label {
+    width: 12;
+    content-align: left middle;
+    color: $text;
+}
+
+.label.required {
+    color: $secondary-accent;
+}
+
+Input {
+    width: 1fr;
+    background: $background;
+    border: solid $borders;
+    color: $text;
+    height: 3;
+}
+
+Input:focus {
+    border: solid $primary-accent;
+}
+
+Checkbox {
+    width: 1fr;
+    height: 3;
+    border: none; 
+    background: $background;
+}
+
+#btn-start {
+    width: 100%;
+    margin-top: 2;
+    background: $borders;
+    color: $text;
+    border: none;
+}
+
+#btn-start:hover {
+    background: $primary-accent;
+    color: $background;
+}
+
+/* Right Side Area */
+#right-side {
+    width: 1fr;
+    height: 100%;
+    layout: vertical;
+}
+
+#output-area {
+    height: 70%;
+    border-bottom: solid $borders;
+    padding: 1;
+    overflow-y: auto;
+}
+
+#ascii-area {
+    height: 30%;
+    content-align: center middle;
+    color: $primary-accent;
+}
+
+.ascii-art {
+    width: auto;
+    color: $primary-accent;
+}
+>>>>>>> 56816638956650b83fc09e9dbac18781295d89c5
