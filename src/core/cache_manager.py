@@ -32,7 +32,7 @@ class CacheManager:
         self.cache_duration = timedelta(hours=cache_duration_hours)
         
         # Rate limit: 100 writes per minute to prevent local DoS
-        self.write_limiter = RateLimiter(max_calls=100, time_window=60)
+        self.write_limiter = RateLimiter(max_calls=50, time_window=60)
         
         self._init_database()
     

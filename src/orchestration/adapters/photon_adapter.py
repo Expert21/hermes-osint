@@ -2,6 +2,8 @@ from typing import Dict, Any
 from src.orchestration.interfaces import ToolAdapter
 from src.orchestration.docker_manager import DockerManager
 from src.core.input_validator import InputValidator
+from src.core.url_validator import URLValidator
+
 
 class PhotonAdapter(ToolAdapter):
     def __init__(self, docker_manager: DockerManager):
@@ -20,8 +22,8 @@ class PhotonAdapter(ToolAdapter):
             Parsed results from Photon
         """
         # SECURITY: Basic validation
-        if not target:
-            raise ValueError("Target cannot be empty")
+        if not URLValidator.is_safe_url(target):
+            raise ValueError(f"Invalid or unsafe URL: {target}")
             
         # Use list format to prevent shell injection
         command = ["-u", target, "--only-urls"]

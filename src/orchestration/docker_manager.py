@@ -43,24 +43,44 @@ class DockerManager:
     def pull_image(self, image_name: str):
         """
         Pull a Docker image if not present.
-        
+
         SECURITY: Only pulls images from the trusted whitelist.
         """
         if not self.is_available:
             raise RuntimeError("Docker is not available")
-        
+
         # SECURITY: Verify image is in trusted list
         if image_name not in TRUSTED_IMAGES:
             raise ValueError(f"Untrusted image: {image_name}. Only whitelisted images are allowed.")
-        
-        trusted_image = TRUSTED_IMAGES[image_name]
-            
+
+        trusted_ref = TRUSTED_IMAGES[image_name]   # image@sha256:xxxx
+
         try:
-            logger.info(f"Pulling trusted image {trusted_image}...")
-            self.client.images.pull(trusted_image)
-            logger.info(f"Successfully pulled {trusted_image}")
+            logger.info(f"Pulling trusted image {trusted_ref}...")
+            image = self.client.images.pull(trusted_ref)
+            logger.info(f"Pulled {trusted_ref}, verifying digest...")
+
+            # SECURITY: Verify digest using RepoDigests
+            repo_digests = image.attrs.get("RepoDigests", [])
+
+            if trusted_ref not in repo_digests:
+                logger.error("DIGEST VERIFICATION FAILED!")
+                logger.error(f"Expected: {trusted_ref}")
+                logger.error(f"RepoDigests found: {repo_digests}")
+
+                # SECURITY: Remove compromised/incorrect image
+                self.client.images.remove(image.id, force=True)
+
+                raise SecurityError(f"Image {image_name} failed digest verification")
+
+            logger.info(f"Image {image_name} verified and ready for use.")
+
+        except docker.errors.ImageNotFound:
+            logger.error(f"Image {trusted_ref} not found. Please pull it first.")
+            raise
+
         except docker.errors.APIError as e:
-            logger.error(f"Failed to pull image {trusted_image}: {e}")
+            logger.error(f"Failed to pull image {trusted_ref}: {e}")
             raise
 
     def remove_image(self, image_name: str, force: bool = False):
@@ -122,7 +142,7 @@ class DockerManager:
     def run_container(
         self, 
         image_name: str, 
-        command: Union[str, List[str]], 
+        command: List[str], 
         environment: Optional[Dict] = None,
         timeout: int = 300,
         cleanup_image: bool = False

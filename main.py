@@ -377,20 +377,6 @@ async def main_async():
     return 0
 
 def main():
-    # Check if no arguments are provided (only script name)
-    if len(sys.argv) == 1:
-        try:
-            from src.tui.app import HermesApp
-            app = HermesApp()
-            app.run()
-            return 0
-        except ImportError:
-            print("TUI dependencies not found. Please install 'textual'.")
-            return 1
-        except Exception as e:
-            print(f"Failed to launch TUI: {e}")
-            return 1
-
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:

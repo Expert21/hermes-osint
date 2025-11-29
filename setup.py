@@ -51,7 +51,6 @@ setup(
         "playwright",
         "psutil",
         "docker",
-        "textual",
     ],
     
     # Create the 'hermes' command using the CLI wrapper

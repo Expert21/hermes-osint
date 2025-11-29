@@ -34,28 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Caching system optimized for parallel execution scenarios
 - Configuration schema extended to support performance tuning options
 
-### Fixed
-- Race conditions in cache access during parallel operations
-- Memory leaks in long-running parallel scans
-- Tool adapter timeout handling in high-concurrency scenarios
-
-## [1.5.0] - 2025-11-27
-
-### Added
-- Terminal User Interface (TUI) with clean installer-style design
-- Docker orchestration framework for running OSINT tools in containers
-- Proxy management system with rotation and validation
-- Tool adapter interface for external OSINT tools
-- Sherlock and TheHarvester adapters
-- h8mail integration for email breach hunting
-- Sequential workflow execution via WorkflowManager
-- Security-hardened container execution with resource limits
-
-### Changed
-- Major codebase refactoring and formatting improvements
-- Enhanced test coverage across modules
-- Core stability improvements in logging, caching, rate limiting
-
 ### Security
 - Enhanced Docker container isolation
 - Whitelist management for tool execution

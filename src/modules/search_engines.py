@@ -57,7 +57,7 @@ class AsyncSearchEngineManager:
                                     '--disable-dev-shm-usage',
                                     '--disable-accelerated-2d-canvas',
                                     '--disable-gpu',
-                                    '--disable-web-security',  # Only if needed for some OSINT targets
+                                    '--disable-features=IsolateOrigins,site-per-process',  # Only if needed for some OSINT targets
                                 ]
                             ),
                             timeout=30.0
@@ -70,6 +70,9 @@ class AsyncSearchEngineManager:
                             java_script_enabled=True,
                             accept_downloads=False,  # Prevent malicious downloads
                             bypass_csp=False,  # Respect CSP
+                            permissions=[],  # Deny all permissions
+                            geolocation=None,
+                            timezone_id='UTC',
                         )
                         
                         # Set additional security and anti-fingerprinting

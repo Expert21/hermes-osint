@@ -26,7 +26,9 @@ class ExiftoolAdapter(ToolAdapter):
         """
         # SECURITY: Basic validation
         if not target.startswith(("http://", "https://")):
-             raise ValueError("Target must be a URL")
+            raise ValueError("Target must be a URL")
+        if not InputValidator.is_safe_url(target):
+            raise ValueError("Unsafe URL detected")
         
         # NOTE: Standard exiftool doesn't fetch URLs natively without curl/wget piping.
         # We'll assume the docker image has a wrapper or we use a simple command.

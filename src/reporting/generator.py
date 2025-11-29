@@ -94,9 +94,20 @@ def _generate_csv_report(results, output_file):
                             ""
                         ])
             
+            # Check BEFORE writing anything
+            if safe_path.exists():
+                if safe_path.is_symlink():
+                    raise ValueError("Target is a symlink - possible attack")
+                # Also verify it's not a special file
+                if not safe_path.is_file():
+                    raise ValueError("Target is not a regular file")
+
             # Revalidate target isn't a symlink before replacing
             if safe_path.exists() and safe_path.is_symlink():
-                raise ValueError("Target is a symlink - possible attack attempt")
+                # Cleanup temp file if it exists before raising error
+                if temp_file.exists():
+                    temp_file.unlink()
+                raise ValueError("Target became a symlink during write - possible attack attempt")
                 
             # Atomic rename
             temp_file.replace(safe_path)
