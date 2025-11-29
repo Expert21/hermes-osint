@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class TheHarvesterAdapter(ToolAdapter):
     def __init__(self, docker_manager: DockerManager):
         self.docker_manager = docker_manager
-        self.image = "secsi/theharvester"
+        self.image = "ghcr.io/laramies/theharvester:sha-af61197"
 
     def execute(self, target: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """

@@ -14,23 +14,19 @@ from src.core.task_manager import TaskManager, TaskPriority
 from src.core.resource_limiter import ResourceLimiter
 
 # Async Module Imports
-from src.modules.search_engines import run_search_engines_async
 from src.modules.social_media import run_social_media_checks_async
 from src.modules.email_enumeration import run_email_enumeration_async
-from src.modules.profile_verification import enhanced_social_media_check_with_verification_async
 from src.reporting.generator import generate_report
 from src.core.input_validator import InputValidator
 
-# Priority 2 & 3 imports (Keep sync for now if not critical, or refactor later)
+# Priority 2 & 3 imports
 from src.modules.username_generator import generate_username_variations
 from src.core.cache_manager import get_cache_manager
-from src.modules.domain_enum import run_domain_enumeration # Assuming this is still sync for now
-from src.core.interactive import run_interactive_mode
 from src.core.interactive import run_interactive_mode
 
 async def main_async():
     parser = argparse.ArgumentParser(
-        description="OSINT Tool - Social Media & Web Search with Verification (v1.4.1)",
+        description="OSINT Tool - Social Media & Email Enumeration (v1.5.0)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -56,12 +52,9 @@ async def main_async():
     
     # Optional flags
     parser.add_argument("--passive", action="store_true", help="Enable passive mode (stealth mode - no direct target contact)")
-    parser.add_argument("--no-verify", action="store_true", help="Skip profile verification (faster)")
-    parser.add_argument("--skip-search", action="store_true", help="Skip search engines")
     parser.add_argument("--skip-social", action="store_true", help="Skip social media")
     parser.add_argument("--no-progress", action="store_true", help="Disable progress indicators")
     parser.add_argument("--no-dedup", action="store_true", help="Disable deduplication")
-    parser.add_argument("--js-render", action="store_true", help="Enable JavaScript rendering (requires Playwright)")
     parser.add_argument("--workers", type=int, default=10, help="Number of concurrent workers (default: 10)")
     
     # Priority 2: Username Variations
@@ -73,9 +66,8 @@ async def main_async():
     parser.add_argument("--clear-cache", action="store_true", help="Clear all cached results")
     parser.add_argument("--cache-stats", action="store_true", help="Show cache statistics")
     
-    # Priority 3: Interactive Mode & Domain Enumeration
+    # Priority 3: Interactive Mode
     parser.add_argument("--interactive", "-i", action="store_true", help="Run in interactive wizard mode")
-    parser.add_argument("--domain-enum", action="store_true", help="Run domain/subdomain enumeration")
     
     # Proxy Configuration
     parser.add_argument("--proxies", help="Path to proxy list file")
@@ -234,10 +226,8 @@ async def main_async():
     results = {
         "target": args.target,
         "target_type": args.type,
-        "search_engines": [],
         "social_media": [],
-        "emails": [],
-        "domain_data": {}
+        "emails": []
     }
     
     
@@ -254,19 +244,7 @@ async def main_async():
     try:
         tasks = []
         
-        # 1. Domain Enumeration (Sync for now, run in executor if needed, or keep sync if fast)
-        if args.domain_enum or (args.type == 'company' and config_dict.get('features', {}).get('domain_enum', False)):
-            logger.info("[Domain Enumeration] Running domain analysis...")
-            domain = args.domain if args.domain else args.target
-            try:
-                # Running sync function directly for now as it's not refactored yet
-                domain_results = run_domain_enumeration(domain, bruteforce=False)
-                results['domain_data'] = domain_results
-                logger.info(f"✓ Found {domain_results['subdomain_count']} subdomains")
-            except Exception as e:
-                logger.error(f"Domain enumeration failed: {e}")
-
-        # 2. Email Enumeration (Async)
+        # 1. Email Enumeration (Async)
         if args.email_enum and config_dict.get('features', {}).get('email_enumeration', True):
             logger.info("[Email Enumeration] Generating potential email addresses...")
             email_future = await task_manager.submit(run_email_enumeration_async(
@@ -278,13 +256,7 @@ async def main_async():
             ), priority=TaskPriority.NORMAL)
             tasks.append(("email", email_future))
 
-        # 3. Search Engines (Async)
-        if not args.skip_search:
-            logger.info("[Search Engines] Queuing search engine modules...")
-            search_future = await task_manager.submit(run_search_engines_async(args.target, config_dict, js_render=args.js_render), priority=TaskPriority.NORMAL)
-            tasks.append(("search", search_future))
-
-        # 4. Social Media (Async)
+        # 2. Social Media (Async)
         if not args.skip_social:
             logger.info("[Social Media] Queuing social media modules...")
             
@@ -293,28 +265,12 @@ async def main_async():
                 variations = generate_username_variations(args.target, include_leet=args.include_leet, include_suffixes=args.include_suffixes)
                 target_names.extend(variations[:10])
             
-            # In passive mode, use passive-only checks (no direct platform contact)
-            if args.passive or args.no_verify:
-                # Just check existence (passive dorking in passive mode)
-                for name in target_names:
-                    social_future = await task_manager.submit(run_social_media_checks_async(
-                        name, args.type, config_dict, passive_only=args.passive
-                    ), priority=TaskPriority.LOW)
-                    tasks.append(("social", social_future))
-            else:
-                # Check and Verify
-                additional_info = {}
-                if args.company: additional_info["company"] = args.company
-                if args.location: additional_info["location"] = args.location
-                if args.email: additional_info["email"] = args.email
-                
-                verify_future = await task_manager.submit(enhanced_social_media_check_with_verification_async(
-                    target=args.target,
-                    target_type=args.type,
-                    config=config_dict,
-                    additional_info=additional_info
-                ), priority=TaskPriority.HIGH)
-                tasks.append(("social_verify", verify_future))
+            # Run social media checks for all username variations
+            for name in target_names:
+                social_future = await task_manager.submit(run_social_media_checks_async(
+                    name, args.type, config_dict, passive_only=args.passive
+                ), priority=TaskPriority.LOW)
+                tasks.append(("social", social_future))
 
         # Wait for all async tasks to complete
         if tasks:
@@ -335,12 +291,8 @@ async def main_async():
                     res = task.result()
                     if task_type == "email":
                         results['emails'] = res
-                    elif task_type == "search":
-                        results['search_engines'] = res
                     elif task_type == "social":
                         results['social_media'].extend(res)
-                    elif task_type == "social_verify":
-                        results['social_media'] = res
                 except Exception as e:
                     logger.error(f"Task {task_type} failed: {e}")
 
@@ -354,10 +306,9 @@ async def main_async():
         logger.info("\n[Deduplication] Processing results...")
         try:
             processed = deduplicate_and_correlate(
-                search_results=results.get('search_engines', []),
+                search_results=[],  # No search results anymore
                 social_results=results.get('social_media', [])
             )
-            results['search_engines'] = processed.get('search_engines', [])
             results['social_media'] = processed.get('social_media', [])
             results['connections'] = processed.get('connections', [])
             results['statistics'] = processed.get('statistics', {})

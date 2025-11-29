@@ -2,13 +2,16 @@
 
 **Advanced OSINT Intelligence Gathering Tool**
 
+## Version 2.0 Alpha Now Available!
+
+
 Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designed for comprehensive digital footprint analysis. Named after the Greek messenger god, Hermes swiftly gathers intelligence across multiple platforms and presents it in professional, actionable reports.
 
-![Version](https://img.shields.io/badge/version-1.6-blue)
+![Version](https://img.shields.io/badge/version-2.0-blue)
 ![Python](https://img.shields.io/badge/python-3.7+-green)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
-> **🚧 Development Notice:** Hermes v2.0 is currently in active development with significant improvements and new capabilities. Stay tuned for updates!
+> **🚀 Alpha Release:** Hermes v2.0 is now in Alpha! This version introduces hybrid execution modes, enhanced performance, and a new plugin system, but is not yet fully implemented. Your feedback is highly appreciated!
 
 ---
 
@@ -16,49 +19,7 @@ Hermes is a powerful, command-line OSINT (Open Source Intelligence) tool designe
 
 Hermes is a comprehensive OSINT framework that automates the process of gathering publicly available information about individuals and organizations. It combines multiple intelligence-gathering techniques into a single, easy-to-use tool with professional reporting capabilities.
 
-### Key Capabilities
 
-- 🔍 **Multi-Platform Search** - Automated searches across search engines and social media
-- 📧 **Email Intelligence** - Generate and validate potential email addresses
-- 🌐 **Domain Analysis** - DNS enumeration and subdomain discovery via Certificate Transparency
-- 👤 **Profile Verification** - Advanced content-based verification of social media profiles
-- 📊 **Professional Reports** - Export findings in HTML, PDF, Markdown, JSON, or STIX 2.1 format
-- 🎭 **Username Variations** - Test multiple username patterns including leet speak
-- ⚡ **Smart Caching** - Avoid redundant requests with 24-hour intelligent caching
-- 🧙 **Interactive Mode** - Guided wizard for easy configuration
-- 🐳 **Docker Orchestration** - Securely run external tools in isolated containers
-
----
-
-## ✨ Features
-
-### Core Intelligence Gathering
-
-**🔎 Search Engines** - DuckDuckGo, Bing, Yahoo, Brave, Startpage, Yandex with dorking capabilities and advanced evasion (header randomization, referrer spoofing, delays)
-
-**📱 Social Media** - LinkedIn, Twitter/X, GitHub, Instagram, Facebook, Reddit, TikTok, YouTube, Medium, Pinterest, Tumblr with profile verification and quality scoring
-
-**📧 Email Enumeration** - Pattern generation (12+ formats), MX validation, multi-domain support
-
-**🌐 Domain Analysis** - DNS records, Certificate Transparency logs, subdomain enumeration
-
-### Advanced Features
-
-**🎯 Data Intelligence** - Deduplication, correlation analysis, quality scoring (0-100), comprehensive statistics
-
-**👥 Username Variations** - Pattern generation, leet speak, separator variations, number suffixes
-
-**💾 Smart Caching** - SQLite storage with 24-hour expiration for faster repeated scans
-
-**📊 Professional Reports** - HTML, PDF, Markdown, JSON, STIX 2.1 formats
-
-**🧙 Interactive Wizard** - Guided configuration with smart defaults
-
-**📝 Configuration Profiles** - Default, Quick Scan, Deep Scan, or custom with YAML-based settings
-
-**⛓️ Sequential Execution** - Chain tools together for complex workflows (e.g., Domain -> Email -> Breach Check)
-
----
 
 ## 🚀 Quick Start
 
@@ -89,14 +50,23 @@ python hermes-test.py
 # Quick start (interactive mode recommended for beginners)
 hermes --interactive
 
-# Individual scan
+# Individual scan (Hybrid mode by default)
 hermes --target "johndoe" --type individual
+
+# Force Docker mode for isolation
+hermes --target "johndoe" --type individual --mode docker
+
+# Run specific tool
+hermes --tool sherlock --target "johndoe" --mode native
+
+# System diagnostics
+hermes --doctor
+
+# Pull all required Docker images
+hermes --pull-images
 
 # Individual with email enumeration
 hermes --target "John Doe" --type individual --email-enum --domain company.com
-
-# Company with domain analysis
-hermes --target "example.com" --type company --domain-enum
 
 # Generate reports (JSON, HTML, PDF, Markdown, STIX)
 hermes --target "johndoe" --type individual --output report.html
@@ -133,49 +103,36 @@ hermes --clear-cache
 - `--email-enum` - Enable email enumeration
 - `--domain` - Primary domain for email/DNS
 - `--domains` - Additional domains (space-separated)
-- `--domain-enum` - Run domain/subdomain enumeration
 
 ### Advanced Features
 - `--username-variations` - Try username variations
 - `--include-leet` - Include leet speak (j0hnd0e)
 - `--include-suffixes` - Include number suffixes (johndoe123)
-- `--js-render` - Enable JavaScript rendering via Playwright (default: off)
 - `--interactive`, `-i` - Interactive wizard mode
 
 ### Cache Management
 - `--cache-stats` - Show cache statistics
 - `--clear-cache` - Clear all cached results
 
+### Execution Control
+- `--mode` - Execution mode: `native`, `docker`, `hybrid` (default: native)
+- `--tool` - Run a specific tool (e.g., `sherlock`, `theharvester`)
+- `--doctor` - Run system diagnostics
+- `--pull-images` - Pull required Docker images
+
 ### Control Flags
-- `--no-verify` - Skip profile verification (faster)
-- `--skip-search` - Skip search engines
 - `--skip-social` - Skip social media
-- `--js-render` - Enable JavaScript rendering (requires Playwright)
 - `--no-progress` - Disable progress indicators
 - `--no-dedup` - Disable deduplication
 
 ---
 
-## 📝 Current Release
-
-### v1.6 - Intelligence & Performance 
-
-- Parallel Execution: Tiered async system with 5-7x performance improvement over sequential execution
-- Resource Management: Auto-detection of system resources with configurable concurrency (--workers)
-- Cross-Tool Correlation: Intelligent result aggregation across multiple OSINT tools
-- Duplicate Detection: Automatic deduplication with smart matching algorithms
-- Confidence Scoring: Enhanced scoring system with source attribution
-- Extended Tool Support: 5 new adapters (Holehe, PhoneInfoga, Sublist3r, Photon, Exiftool)
-- Enhanced Reporting: Source attribution and confidence metrics in all report formats
-
-
-For complete version history and detailed changelogs, see CHANGELOG.md
 
 ## 🔧 Configuration
 
-### v1.4: Environment-Based Configuration
+### Environment-Based Configuration
 
-Hermes v1.4 uses `.env` files for configuration. Generate a template and import your settings:
+Hermes uses `.env` files for configuration. Generate a template and import your settings:
 
 ```bash
 # Generate .env template with all available options

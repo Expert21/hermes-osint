@@ -30,8 +30,12 @@ class DockerManager:
 
     TRUSTED_IMAGES = {
     "sherlock/sherlock": "sherlock/sherlock@sha256:9d6602b98179fb15ceab88433626fb0ae603ae9880e13cab886970317fe1475f",
-    "secsi/theharvester": "secsi/theharvester@sha256:9515ec0d26f83abc05856caf180ff78c91a048c3cf94ead6db86ab5b7aaf6772",
-    "khast3x/h8mail": "khast3x/h8mail@sha256:baa9be41369e6d2e966d640c0d0b9d0856cf62d1c0cfbfc91d8d035760b160a9"
+    "khast3x/h8mail": "khast3x/h8mail@sha256:baa9be41369e6d2e966d640c0d0b9d0856cf62d1c0cfbfc91d8d035760b160a9",
+    "searxng/searxng":"searxng/searxng@sha256:0124d32d77e0c7360d0b85f5d91882d1837e6ceb243c82e190f5d7e9f1401334",
+    "projectdiscovery/subfinder":"projectdiscovery/subfinder@sha256:70d8fa85be31de07d4aee7f7058effb83f9e5322154417c4267fddb6a4d79d99",
+    "ghcr.io/laramies/theharvester:sha-af61197":"ghcr.io/laramies/theharvester:sha-af61197@sha256:5836bcb85ed30ac55391a329b1eb6b12aa6430d31118ab1d3afdd47786a42731"
+    ""
+
     }
 
     # SECURITY: Whitelist for environment variables

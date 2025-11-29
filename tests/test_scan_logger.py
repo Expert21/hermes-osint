@@ -1,17 +1,16 @@
 """
-Test scan logger functionality with passive intelligence module.
+Test scan logger functionality.
 """
 import asyncio
 import logging
 import os
 from src.core.scan_logger import ScanLogger, EventType
-from src.modules.passive_intelligence import PassiveIntelligenceModule
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
 async def test_scan_logger():
-    print("Testing Scan Logger Integration...")
+    print("Testing Scan Logger...")
     
     # Create scan logger
     scan_logger = ScanLogger(output_format="json")
@@ -24,23 +23,28 @@ async def test_scan_logger():
         {"target": "test@example.com"}
     )
     
-    # Test with passive intelligence
-    print("\n--- Testing Passive Intelligence with Logger ---")
-    passive = PassiveIntelligenceModule(scan_logger=scan_logger)
+    # Log some test events
+    print("\n--- Testing Logger Events ---")
+    scan_logger.log_event(
+        EventType.MODULE_START,
+        "social_media",
+        "Checking social media profiles",
+        {"platforms": ["GitHub", "Twitter", "Instagram"]}
+    )
     
-    # This should trigger some errors/rate limits depending on API availability
-    breach_results = await passive.check_breach_data("test@example.com")
-    print(f"Breach results: {len(breach_results)}")
-    
-    pgp_results = await passive.query_pgp_keyservers("torvalds@linux-foundation.org")
-    print(f"PGP results: {len(pgp_results)}")
+    scan_logger.log_event(
+        EventType.RESULT_FOUND,
+        "social_media",
+        "Found GitHub profile",
+        {"url": "https://github.com/testuser"}
+    )
     
     # Log scan end
     scan_logger.log_event(
         EventType.SCAN_END,
         "test",
         "Test scan complete",
-{}
+        {}
     )
     
     # Print summary

@@ -3,18 +3,17 @@ import logging
 import random
 from typing import Dict, List, Optional, Any
 from src.core.async_request_manager import AsyncRequestManager
-from src.modules.passive_intelligence import PassiveIntelligenceModule
 
 logger = logging.getLogger("OSINT_Tool")
 
 class AsyncSocialMediaChecker:
     """
-    Async social media checker with passive-first logic and rate limiting.
+    Async social media checker for stable platforms only.
+    Supports: GitHub, Twitter/X, Instagram
     """
     
     def __init__(self):
         self.request_manager = AsyncRequestManager()
-        self.passive_module = PassiveIntelligenceModule()
         self.backoff_factor = 1.5
         self.initial_delay = 1.0
     
@@ -42,7 +41,7 @@ class AsyncSocialMediaChecker:
                             "url": url,
                             "status": "Verified",
                             "status_code": 200,
-                            "source": "Active Check",
+                            "source": "Direct Check",
                             "confidence": 1.0
                         }
                     else:
@@ -52,7 +51,7 @@ class AsyncSocialMediaChecker:
                             "url": url,
                             "status": "Found (Unverified)",
                             "status_code": 200,
-                            "source": "Active Check",
+                            "source": "Direct Check",
                             "confidence": 0.7
                         }
                 elif response["status"] == 404:
@@ -71,20 +70,17 @@ class AsyncSocialMediaChecker:
         return None
     
     def _verify_profile_content(self, content: str, platform: str) -> bool:
-        """Verify content markers"""
+        """Verify content markers for supported platforms only"""
         content = content.lower()
         
+        # Only verify for our 3 supported platforms
         verification_markers = {
             "twitter": ["profile", "tweets", "following", "followers"],
             "instagram": ["followers", "following", "posts", "instagram"],
-            "facebook": ["facebook", "profile", "friends", "posts"],
-            "linkedin": ["linkedin", "experience", "connections", "profile"],
-            "github": ["repositories", "contributions", "github", "profile"],
-            "pinterest": ["pinterest", "pins", "boards", "followers"],
-            "tiktok": ["tiktok", "followers", "following", "likes"]
+            "github": ["repositories", "contributions", "github", "profile"]
         }
         
-        platform_key = platform.lower().replace(" company", "").replace("linkedin company", "linkedin")
+        platform_key = platform.lower()
         markers = verification_markers.get(platform_key, [])
         
         matches = sum(1 for marker in markers if marker in content)
@@ -102,77 +98,35 @@ async def run_social_media_checks_async(
     passive_only: bool = False
 ) -> List[Dict[str, Any]]:
     """
-    Async entry point for social media checks with tiered intelligence.
+    Async entry point for social media checks.
+    Only checks GitHub, Twitter/X, and Instagram.
     """
     checker = AsyncSocialMediaChecker()
     results = []
     
-    logger.info(f"Starting social media enumeration for: {target} (Passive Only: {passive_only})")
+    logger.info(f"Starting social media enumeration for: {target}")
     
-    # Tier 1: Passive Discovery (Dorking)
-    # We use the passive module to find profiles via search engines first
-    logger.info("Phase 1: Passive Discovery (Dorking)...")
-    passive_results = await checker.passive_module.dork_profiles(target)
+    # Only check our 3 stable platforms
+    platforms_config = {
+        "Twitter": ["https://twitter.com/{}", "https://x.com/{}"],
+        "Instagram": ["https://www.instagram.com/{}"],
+        "GitHub": ["https://github.com/{}"]
+    }
     
-    found_urls = set()
-    for res in passive_results:
-        found_urls.add(res['url'])
-        results.append({
-            "platform": res['platform'],
-            "url": res['url'],
-            "status": "Found (Passive)",
-            "status_code": 200,
-            "source": "Search Dork",
-            "confidence": 0.9 # High confidence from search engine
-        })
+    tasks = []
     
-    logger.info(f"Passive phase found {len(results)} potential profiles.")
-
-    # Tier 2: Active Verification
-    if not passive_only:
-        logger.info("Phase 2: Active Verification...")
+    for platform, url_patterns in platforms_config.items():
+        for url_pattern in url_patterns:
+            url = url_pattern.format(target)
+            tasks.append(checker._check_profile_exists(url, platform))
+    
+    if tasks:
+        logger.info(f"Checking {len(tasks)} social media profiles...")
+        active_results = await asyncio.gather(*tasks)
         
-        platforms_config = {
-            "Twitter": ["https://twitter.com/{}", "https://x.com/{}"],
-            "Instagram": ["https://www.instagram.com/{}"],
-            "Facebook": ["https://www.facebook.com/{}"],
-            "LinkedIn": ["https://www.linkedin.com/in/{}"],
-            "LinkedIn Company": ["https://www.linkedin.com/company/{}"],
-            "GitHub": ["https://github.com/{}"],
-            "Pinterest": ["https://www.pinterest.com/{}"],
-            "TikTok": ["https://www.tiktok.com/@{}"]
-        }
-        
-        if target_type == "company":
-            platforms_config.pop("LinkedIn", None)
-        else:
-            platforms_config.pop("LinkedIn Company", None)
-            
-        tasks = []
-        
-        # Only check platforms that weren't already found passively?
-        # Or check all to be sure? 
-        # Strategy: Check all standard usernames on platforms NOT found passively.
-        # And verify the ones found passively if we want 100% confirmation (but dork is usually good enough).
-        # Let's check standard usernames for any platform where we didn't find a dork result.
-        
-        for platform, url_patterns in platforms_config.items():
-            # Check if we already found a profile for this platform
-            already_found = any(r['platform'].lower() in platform.lower() for r in results)
-            
-            if not already_found:
-                for url_pattern in url_patterns:
-                    url = url_pattern.format(target)
-                    if url not in found_urls:
-                        tasks.append(checker._check_profile_exists(url, platform))
-        
-        if tasks:
-            logger.info(f"Checking {len(tasks)} additional direct profiles...")
-            active_results = await asyncio.gather(*tasks)
-            
-            for res in active_results:
-                if res:
-                    results.append(res)
+        for res in active_results:
+            if res:
+                results.append(res)
     
     logger.info(f"Completed social media checks: {len(results)} profiles found")
     return results

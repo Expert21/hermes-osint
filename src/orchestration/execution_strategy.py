@@ -178,157 +178,158 @@ class NativeExecutionStrategy(ExecutionStrategy):
         - Rejects path/params/query/fragment except a bare "/" path.
         - Fail-closed on any unexpected error.
         """
-    import ipaddress
-    import socket
-    from urllib.parse import urlparse
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
 
-    try:
-        parsed = urlparse(url)
+        try:
+            parsed = urlparse(url)
 
-        # 1) Scheme whitelist (normalized)
-        allowed_schemes = {"http", "https", "socks4", "socks5", "socks4h", "socks5h"}
-        scheme = (parsed.scheme or "").lower()
-        if scheme not in allowed_schemes:
-            logger.warning("Invalid proxy scheme: %s", parsed.scheme)
-            return False
-
-        # 2) Must have netloc/hostname
-        if not parsed.netloc:
-            logger.warning("Proxy URL missing hostname/netloc")
-            return False
-
-        # 3) Disallow userinfo (username/password)
-        # urlparse exposes username/password properties; also check for '@' as a fallback
-        if parsed.username or parsed.password or "@" in parsed.netloc:
-            logger.warning("Proxy URL contains credentials or userinfo - rejected")
-            return False
-
-        # 4) Reject URLs with suspicious components
-        if any([parsed.params, parsed.query, parsed.fragment]):
-            logger.warning("Proxy URL contains params/query/fragment - rejected")
-            return False
-        if parsed.path and parsed.path not in ("", "/"):
-            logger.warning("Proxy URL contains a non-trivial path - rejected")
-            return False
-
-        # 5) Extract host and port info robustly
-        host = parsed.hostname  # Note: urlparse already handles bracketed IPv6
-        port = parsed.port
-
-        if not host:
-            # fallback to raw netloc if parsing failed
-            host = parsed.netloc
-            # strip possible :port if present
-            if ":" in host and host.count(":") == 1 and not host.startswith("["):
-                host, _, maybe_port = host.partition(":")
-                try:
-                    port = int(maybe_port)
-                except Exception:
-                    port = None
-
-        # 6) Validate port range if given (1-65535)
-        if port is not None:
-            if not (1 <= port <= 65535):
-                logger.warning("Invalid port %r in proxy URL", port)
+            # 1) Scheme whitelist (normalized)
+            allowed_schemes = {"http", "https", "socks4", "socks5", "socks4h", "socks5h"}
+            scheme = (parsed.scheme or "").lower()
+            if scheme not in allowed_schemes:
+                logger.warning("Invalid proxy scheme: %s", parsed.scheme)
                 return False
 
-        # 7) Normalize hostname using IDNA to mitigate unicode tricks / punycode
-        try:
-            # If it's an IPv6 literal or IPv4 literal, this will not change it.
-            # idna.encode will raise for illegal hostnames; decode to str
-            normalized_host = host.encode("idna").decode("ascii")
-        except Exception:
-            # If IDNA fails, reject — safer than attempting to accept weird unicode
-            logger.warning("Hostname IDNA normalization failed for host: %r", host)
-            return False
-
-        # Lowercase normalized host for comparisons
-        normalized_host_lc = normalized_host.lower()
-
-        # 8) Block common localhost and ambiguous hostnames up-front
-        blocked_hostnames = {
-            "localhost", "localhost.localdomain", "ip6-localhost", "ip6-loopback",
-            "broadcasthost", "loopback", "0", "0.0.0.0", "::", "::0"
-        }
-        if normalized_host_lc in blocked_hostnames:
-            logger.warning("Proxy hostname is a blocked local/unspecified name: %s", normalized_host)
-            return False
-
-        # 9) Optionally block .onion (Tor) addresses unless explicitly allowed
-        if not allow_onion and normalized_host_lc.endswith(".onion"):
-            logger.warning("Proxy hostname is an .onion address and .onion is not allowed")
-            return False
-
-        # 10) If the host is an IP literal, validate it directly without DNS
-        try:
-            ip_obj = ipaddress.ip_address(normalized_host_lc)
-            # Block private/loopback/link-local/multicast/unspecified
-            if (
-                ip_obj.is_private
-                or ip_obj.is_loopback
-                or ip_obj.is_link_local
-                or ip_obj.is_multicast
-                or ip_obj.is_unspecified
-            ):
-                logger.warning("Proxy IP literal %s rejected (private/loopback/link-local/multicast/unspecified)", ip_obj)
+            # 2) Must have netloc/hostname
+            if not parsed.netloc:
+                logger.warning("Proxy URL missing hostname/netloc")
                 return False
-            # Valid public IP literal
-            return True
-        except ValueError:
-            # not an IP literal; proceed to DNS resolution
-            pass
 
-        # 11) Resolve the hostname to all addresses (AF_UNSPEC). Limit results to avoid DoS.
-        try:
-            addrinfo = socket.getaddrinfo(normalized_host, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
-        except socket.gaierror as e:
-            logger.warning("DNS resolution failed for host %s: %s", normalized_host, e)
-            return False
+            # 3) Disallow userinfo (username/password)
+            # urlparse exposes username/password properties; also check for '@' as a fallback
+            if parsed.username or parsed.password or "@" in parsed.netloc:
+                logger.warning("Proxy URL contains credentials or userinfo - rejected")
+                return False
 
-        # Extract unique IP strings, preserving a deterministic order
-        resolved_ips = []
-        seen = set()
-        for entry in addrinfo:
-            # addrinfo tuple: (family, socktype, proto, canonname, sockaddr)
-            sockaddr = entry[4]
-            ip_str = sockaddr[0]
-            if ip_str not in seen:
-                seen.add(ip_str)
-                resolved_ips.append(ip_str)
-            if len(resolved_ips) >= max_addrs:
-                logger.warning("Too many DNS addresses for host %s; limiting to %d", normalized_host, max_addrs)
-                break
+            # 4) Reject URLs with suspicious components
+            if any([parsed.params, parsed.query, parsed.fragment]):
+                logger.warning("Proxy URL contains params/query/fragment - rejected")
+                return False
+            if parsed.path and parsed.path not in ("", "/"):
+                logger.warning("Proxy URL contains a non-trivial path - rejected")
+                return False
 
-        if not resolved_ips:
-            logger.warning("No A/AAAA records returned for host %s", normalized_host)
-            return False
+            # 5) Extract host and port info robustly
+            host = parsed.hostname  # Note: urlparse already handles bracketed IPv6
+            port = parsed.port
 
-        # 12) Validate each resolved IP: reject private, loopback, link-local, multicast, unspecified
-        for ip_str in resolved_ips:
+            if not host:
+                # fallback to raw netloc if parsing failed
+                host = parsed.netloc
+                # strip possible :port if present
+                if ":" in host and host.count(":") == 1 and not host.startswith("["):
+                    host, _, maybe_port = host.partition(":")
+                    try:
+                        port = int(maybe_port)
+                    except Exception:
+                        port = None
+
+            # 6) Validate port range if given (1-65535)
+            if port is not None:
+                if not (1 <= port <= 65535):
+                    logger.warning("Invalid port %r in proxy URL", port)
+                    return False
+
+            # 7) Normalize hostname using IDNA to mitigate unicode tricks / punycode
             try:
-                ip = ipaddress.ip_address(ip_str)
+                # If it's an IPv6 literal or IPv4 literal, this will not change it.
+                # idna.encode will raise for illegal hostnames; decode to str
+                normalized_host = host.encode("idna").decode("ascii")
+            except Exception:
+                # If IDNA fails, reject — safer than attempting to accept weird unicode
+                logger.warning("Hostname IDNA normalization failed for host: %r", host)
+                return False
+
+            # Lowercase normalized host for comparisons
+            normalized_host_lc = normalized_host.lower()
+
+            # 8) Block common localhost and ambiguous hostnames up-front
+            blocked_hostnames = {
+                "localhost", "localhost.localdomain", "ip6-localhost", "ip6-loopback",
+                "broadcasthost", "loopback", "0", "0.0.0.0", "::", "::0"
+            }
+            if normalized_host_lc in blocked_hostnames:
+                logger.warning("Proxy hostname is a blocked local/unspecified name: %s", normalized_host)
+                return False
+
+            # 9) Optionally block .onion (Tor) addresses unless explicitly allowed
+            if not allow_onion and normalized_host_lc.endswith(".onion"):
+                logger.warning("Proxy hostname is an .onion address and .onion is not allowed")
+                return False
+
+            # 10) If the host is an IP literal, validate it directly without DNS
+            try:
+                ip_obj = ipaddress.ip_address(normalized_host_lc)
+                # Block private/loopback/link-local/multicast/unspecified
+                if (
+                    ip_obj.is_private
+                    or ip_obj.is_loopback
+                    or ip_obj.is_link_local
+                    or ip_obj.is_multicast
+                    or ip_obj.is_unspecified
+                ):
+                    logger.warning("Proxy IP literal %s rejected (private/loopback/link-local/multicast/unspecified)", ip_obj)
+                    return False
+                # Valid public IP literal
+                return True
             except ValueError:
-                logger.warning("Invalid IP returned from DNS for host %s: %s", normalized_host, ip_str)
+                # not an IP literal; proceed to DNS resolution
+                pass
+
+            # 11) Resolve the hostname to all addresses (AF_UNSPEC). Limit results to avoid DoS.
+            try:
+                addrinfo = socket.getaddrinfo(normalized_host, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
+            except socket.gaierror as e:
+                logger.warning("DNS resolution failed for host %s: %s", normalized_host, e)
                 return False
 
-            if (
-                ip.is_private
-                or ip.is_loopback
-                or ip.is_link_local
-                or ip.is_multicast
-                or ip.is_unspecified
-            ):
-                logger.warning("Resolved IP %s for host %s is private/loopback/link-local/multicast/unspecified; rejected",
-                               ip_str, normalized_host)
+            # Extract unique IP strings, preserving a deterministic order
+            resolved_ips = []
+            seen = set()
+            for entry in addrinfo:
+                # addrinfo tuple: (family, socktype, proto, canonname, sockaddr)
+                sockaddr = entry[4]
+                ip_str = sockaddr[0]
+                if ip_str not in seen:
+                    seen.add(ip_str)
+                    resolved_ips.append(ip_str)
+                if len(resolved_ips) >= max_addrs:
+                    logger.warning("Too many DNS addresses for host %s; limiting to %d", normalized_host, max_addrs)
+                    break
+
+            if not resolved_ips:
+                logger.warning("No A/AAAA records returned for host %s", normalized_host)
                 return False
 
-        # 13) All checks passed
-        return True
+            # 12) Validate each resolved IP: reject private, loopback, link-local, multicast, unspecified
+            for ip_str in resolved_ips:
+                try:
+                    ip = ipaddress.ip_address(ip_str)
+                except ValueError:
+                    logger.warning("Invalid IP returned from DNS for host %s: %s", normalized_host, ip_str)
+                    return False
 
-    except Exception as exc:
-        # Fail-closed on unexpected errors
-        logger.exception("Unexpected error validating proxy URL: %s", exc)
-        return False
+                if (
+                    ip.is_private
+                    or ip.is_loopback
+                    or ip.is_link_local
+                    or ip.is_multicast
+                    or ip.is_unspecified
+                ):
+                    logger.warning("Resolved IP %s for host %s is private/loopback/link-local/multicast/unspecified; rejected",
+                                   ip_str, normalized_host)
+                    return False
+
+            # 13) All checks passed
+            return True
+
+        except Exception as exc:
+            # Fail-closed on unexpected errors
+            logger.exception("Unexpected error validating proxy URL: %s", exc)
+            return False
+
 
 
 class HybridExecutionStrategy(ExecutionStrategy):
