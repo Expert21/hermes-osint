@@ -61,30 +61,54 @@ class DockerExecutionStrategy(ExecutionStrategy):
             
         image_name = self.tool_image_map[tool_name]
         
-        # Extract environment variables for proxy enforcement
-        env = {}
-        if config.get("proxies"):
-            # Assuming config['proxies'] might have http/https keys
-            # or we pull from the general config
-            pass
-            
-        # We'll pass the whole config to docker manager to handle env extraction if needed
-        # or just pass specific env vars here.
-        # For now, let's assume the DockerManager's run_container handles the ALLOWED_ENV_VARS filtering
-        # so we just pass what we have.
-        
         # Construct environment from config if present
         environment = {}
         if "proxy_url" in config:
-             environment["HTTP_PROXY"] = config["proxy_url"]
-             environment["HTTPS_PROXY"] = config["proxy_url"]
-             environment["ALL_PROXY"] = config["proxy_url"]
+            # SECURITY: Validate proxy URL to prevent injection
+            proxy_url = config["proxy_url"]
+            if not self._is_valid_proxy_url(proxy_url):
+                logger.warning(f"Invalid proxy URL format: {proxy_url}. Skipping proxy configuration.")
+            else:
+                environment["HTTP_PROXY"] = proxy_url
+                environment["HTTPS_PROXY"] = proxy_url
+                environment["ALL_PROXY"] = proxy_url
         
         return self.docker_manager.run_container(
             image_name=image_name,
             command=command,
             environment=environment
         )
+    
+    def _is_valid_proxy_url(self, url: str) -> bool:
+        """
+        Validate proxy URL to prevent injection attacks.
+        
+        SECURITY: Ensures proxy URL is well-formed and uses allowed schemes.
+        """
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            
+            # Must have a valid scheme
+            if parsed.scheme not in ['http', 'https', 'socks4', 'socks5', 'socks4h', 'socks5h']:
+                logger.warning(f"Invalid proxy scheme: {parsed.scheme}")
+                return False
+            
+            # Must have a netloc (hostname:port)
+            if not parsed.netloc:
+                logger.warning("Proxy URL missing hostname")
+                return False
+            
+            # Should not contain path, params, query, or fragment (suspicious)
+            if any([parsed.path and parsed.path != '/', parsed.params, parsed.query, parsed.fragment]):
+                logger.warning("Proxy URL contains suspicious components")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating proxy URL: {e}")
+            return False
 
 class NativeExecutionStrategy(ExecutionStrategy):
     """
@@ -105,9 +129,14 @@ class NativeExecutionStrategy(ExecutionStrategy):
         # Prepare environment
         env = os.environ.copy()
         if "proxy_url" in config:
-             env["HTTP_PROXY"] = config["proxy_url"]
-             env["HTTPS_PROXY"] = config["proxy_url"]
-             env["ALL_PROXY"] = config["proxy_url"]
+            # SECURITY: Validate proxy URL to prevent injection
+            proxy_url = config["proxy_url"]
+            if not self._is_valid_proxy_url(proxy_url):
+                logger.warning(f"Invalid proxy URL format: {proxy_url}. Skipping proxy configuration.")
+            else:
+                env["HTTP_PROXY"] = proxy_url
+                env["HTTPS_PROXY"] = proxy_url
+                env["ALL_PROXY"] = proxy_url
 
         logger.info(f"Executing native command: {tool_name} {' '.join(command)}")
         
@@ -134,6 +163,37 @@ class NativeExecutionStrategy(ExecutionStrategy):
         except Exception as e:
             logger.error(f"Native execution failed: {e}")
             raise
+    
+    def _is_valid_proxy_url(self, url: str) -> bool:
+        """
+        Validate proxy URL to prevent injection attacks.
+        
+        SECURITY: Ensures proxy URL is well-formed and uses allowed schemes.
+        """
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            
+            # Must have a valid scheme
+            if parsed.scheme not in ['http', 'https', 'socks4', 'socks5', 'socks4h', 'socks5h']:
+                logger.warning(f"Invalid proxy scheme: {parsed.scheme}")
+                return False
+            
+            # Must have a netloc (hostname:port)
+            if not parsed.netloc:
+                logger.warning("Proxy URL missing hostname")
+                return False
+            
+            # Should not contain path, params, query, or fragment (suspicious)
+            if any([parsed.path and parsed.path != '/', parsed.params, parsed.query, parsed.fragment]):
+                logger.warning("Proxy URL contains suspicious components")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error validating proxy URL: {e}")
+            return False
 
 class HybridExecutionStrategy(ExecutionStrategy):
     """

@@ -7,10 +7,11 @@ logger = logging.getLogger(__name__)
 
 # SECURITY: Trusted image digests to prevent supply chain attacks
 # Update these digests periodically after verifying image integrity
+# Images are pinned to specific SHA256 digests to ensure immutable references
 TRUSTED_IMAGES = {
-    "sherlock/sherlock": "sherlock/sherlock:latest",  # TODO: Replace with @sha256:digest
-    "secsi/theharvester": "secsi/theharvester:latest",  # TODO: Replace with @sha256:digest
-    "khast3x/h8mail": "khast3x/h8mail:latest"
+    "sherlock/sherlock": "sherlock/sherlock@sha256:9d6602b98179fb15ceab88433626fb0ae603ae9880e13cab886970317fe1475f",
+    "secsi/theharvester": "secsi/theharvester@sha256:9515ec0d26f83abc05856caf180ff78c91a048c3cf94ead6db86ab5b7aaf6772",
+    "khast3x/h8mail": "khast3x/h8mail@sha256:baa9be41369e6d2e966d640c0d0b9d0856cf62d1c0cfbfc91d8d035760b160a9"
 }
 
 # SECURITY: Whitelist for environment variables

@@ -71,9 +71,16 @@ class TaskManager:
                 
                 self.active_tasks += 1
                 try:
-                    result = await coro
+                    # SECURITY: Wrap with timeout to prevent hung tasks from blocking workflow
+                    # Default timeout: 10 minutes (600 seconds)
+                    result = await asyncio.wait_for(coro, timeout=600)
                     if not future.cancelled():
                         future.set_result(result)
+                except asyncio.TimeoutError:
+                    error_msg = "Task execution timeout (exceeded 600 seconds)"
+                    logger.error(error_msg)
+                    if not future.cancelled():
+                        future.set_exception(TimeoutError(error_msg))
                 except Exception as e:
                     if not future.cancelled():
                         future.set_exception(e)

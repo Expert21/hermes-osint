@@ -121,6 +121,39 @@ class SecretsManager:
             logger.info("No legacy secrets file found.")
             return
 
+        # SECURITY: Verify HMAC integrity before migration
+        logger.info("Verifying integrity of legacy secrets before migration...")
+        
+        # Read file and check HMAC
+        try:
+            with open(self.creds_file, 'rb') as f:
+                file_content = f.read()
+            
+            if len(file_content) < 32:
+                logger.error("Legacy secrets file is corrupt (too small). Aborting migration.")
+                return
+            
+            stored_hmac = file_content[:32]
+            encrypted_data = file_content[32:]
+            
+            hmac_key = self._get_hmac_key()
+            if not hmac_key:
+                logger.error("Cannot derive HMAC key. Aborting migration for safety.")
+                return
+            
+            calculated_hmac = hmac.new(hmac_key, encrypted_data, hashlib.sha256).digest()
+            
+            if not hmac.compare_digest(stored_hmac, calculated_hmac):
+                logger.error("HMAC verification failed! Legacy credentials may be compromised. Aborting migration.")
+                logger.warning("Please verify your credentials file manually before migration.")
+                return
+            
+            logger.info("✓ HMAC verification passed. Credentials are intact.")
+            
+        except Exception as e:
+            logger.error(f"Failed to verify credentials integrity: {e}. Aborting migration.")
+            return
+
         logger.info("Migrating legacy secrets to OS Keyring...")
         credentials = self._read_all_encrypted_file()
         
@@ -162,6 +195,23 @@ class SecretsManager:
         else:
             key = Fernet.generate_key()
             self.key_file.touch(mode=0o600)
+            
+            # SECURITY: Windows-specific permission hardening
+            # On Windows, chmod 0o600 doesn't work properly, so use icacls
+            import platform
+            if platform.system() == 'Windows':
+                try:
+                    import subprocess
+                    # Remove all inherited permissions and grant only current user full control
+                    subprocess.run([
+                        'icacls', str(self.key_file), 
+                        '/inheritance:r',  # Remove inheritance
+                        '/grant:r', f'{os.getenv("USERNAME")}:(F)'  # Grant full control to current user only
+                    ], check=True, capture_output=True)
+                    logger.debug(f"Set Windows ACLs on {self.key_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to set Windows ACLs on key file: {e}")
+            
             with open(self.key_file, 'wb') as f:
                 f.write(key)
         
