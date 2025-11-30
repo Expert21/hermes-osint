@@ -48,13 +48,14 @@ class DockerExecutionStrategy(ExecutionStrategy):
         # Map generic tool names to Docker image names
         self.tool_image_map = {
             "sherlock": "sherlock/sherlock",
-            "theharvester": "secsi/theharvester",
+            "theharvester": "ghcr.io/laramies/theharvester:sha-af61197",
             "h8mail": "khast3x/h8mail",
-            "holehe": "holehe", # Placeholder, need actual image if different
+            "holehe": "gmrnonoss/holehe",
             "phoneinfoga": "sundowndev/phoneinfoga",
-            "sublist3r": "sublist3r", # Placeholder
-            "photon": "photon", # Placeholder
-            "exiftool": "exiftool" # Placeholder
+            "subfinder": "projectdiscovery/subfinder",
+            "searxng": "searxng/searxng",
+            "photon": "photon", # Placeholder - no image yet
+            "exiftool": "ai2ys/exiftool"
         }
 
     def is_available(self, tool_name: str) -> bool:
