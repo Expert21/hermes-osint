@@ -128,7 +128,6 @@ Please open an issue or submit a PR.
 * Automated docker image generation for tools that currently lack them
 * Hardened ephemeral container workflows
 * Expanded OSINT tool library
-* TUI rebuild (security‑aware)
 * Plugin ecosystem
 
 ---
@@ -152,3 +151,4 @@ Use with caution.
 Built by **Expert21**
 
 Contributions welcome — Hermes 2.0 is a community‑driven OSINT framework.
+
