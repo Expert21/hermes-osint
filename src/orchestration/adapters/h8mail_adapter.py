@@ -7,7 +7,7 @@ from typing import Dict, Any
 import json
 import logging
 from src.orchestration.interfaces import ToolAdapter
-from src.orchestration.docker_manager import DockerManager
+from src.orchestration.execution_strategy import ExecutionStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +16,9 @@ class H8MailAdapter(ToolAdapter):
     Adapter for h8mail (Email Breach Hunting).
     """
 
-    def __init__(self, docker_manager: DockerManager):
-        self.docker_manager = docker_manager
-        self.image = "khast3x/h8mail"
+    def __init__(self, execution_strategy: ExecutionStrategy):
+        self.execution_strategy = execution_strategy
+        self.tool_name = "h8mail"
 
     def execute(self, target: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -42,21 +42,9 @@ class H8MailAdapter(ToolAdapter):
         # h8mail uses a config file usually, but can take some via CLI or env
         # For this MVP, we'll assume basic execution or env vars passed via DockerManager
         
-        env_vars = {}
-        if 'api_keys' in config:
-            # Map specific keys if needed, or pass through
-            pass
-
         try:
-            # Pull image if needed (DockerManager handles this but good to be explicit/safe)
-            # self.docker_manager.pull_image(self.image) 
-            
             logger.info(f"Executing h8mail for {target}")
-            output = self.docker_manager.run_container(
-                image_name=self.image,
-                command=command,
-                environment=env_vars
-            )
+            output = self.execution_strategy.execute(self.tool_name, command, config)
             
             return self.parse_results(output)
             

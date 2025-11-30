@@ -6,32 +6,35 @@
 from typing import Dict, Any
 import re
 from src.orchestration.interfaces import ToolAdapter
-from src.orchestration.docker_manager import DockerManager
+from src.orchestration.execution_strategy import ExecutionStrategy
 from src.core.input_validator import InputValidator
 
 class HoleheAdapter(ToolAdapter):
-    def __init__(self, docker_manager: DockerManager):
-        self.docker_manager = docker_manager
-        self.image = "megadose/holehe"
+    def __init__(self, execution_strategy: ExecutionStrategy):
+        self.execution_strategy = execution_strategy
+        self.tool_name = "holehe"
 
     def execute(self, target: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Run Holehe against an email address.
+        Run Holehe against an email.
         
         Args:
-            target: Email to check
+            target: Email address
             config: Configuration dictionary
             
         Returns:
             Parsed results from Holehe
         """
-        # SECURITY: Validate email format
-        if not InputValidator.validate_email(target):
-             raise ValueError(f"Invalid email address: {target}")
+        # SECURITY: Validate email
+        try:
+            sanitized_target = InputValidator.validate_email(target)
+        except ValueError as e:
+            raise ValueError(f"Invalid email: {e}")
         
         # Use list format to prevent shell injection
-        command = [target, "--only-used", "--no-color"]
-        output = self.docker_manager.run_container(self.image, command)
+        command = [sanitized_target, "--only-used", "--no-color"]
+        
+        output = self.execution_strategy.execute(self.tool_name, command, config)
         return self.parse_results(output)
 
     def parse_results(self, output: str) -> Dict[str, Any]:

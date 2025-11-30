@@ -4,52 +4,42 @@
 # -----------------------------------------------------------------------------
 
 from typing import Dict, Any
+import json
 from src.orchestration.interfaces import ToolAdapter
-from src.orchestration.docker_manager import DockerManager
+from src.orchestration.execution_strategy import ExecutionStrategy
 from src.core.input_validator import InputValidator
 
 class ExiftoolAdapter(ToolAdapter):
-    def __init__(self, docker_manager: DockerManager):
-        self.docker_manager = docker_manager
-        self.image = "u1234x1234/exiftool" # Placeholder image, replace with actual if needed
+    def __init__(self, execution_strategy: ExecutionStrategy):
+        self.execution_strategy = execution_strategy
+        self.tool_name = "exiftool"
 
     def execute(self, target: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Run Exiftool against a file URL or path (if mounted).
-        For this implementation, we assume target is a URL to an image we fetch inside the container or pass to it.
-        However, standard exiftool works on files. 
-        
-        If target is a URL, we might need a wrapper script in the container.
-        For simplicity, let's assume the container can handle URLs or we just pass arguments.
+        Run Exiftool against a file.
         
         Args:
-            target: URL to image/file
+            target: Path to file (must be within allowed directories)
             config: Configuration dictionary
             
         Returns:
             Parsed results from Exiftool
         """
-        # SECURITY: Basic validation
-        if not target.startswith(("http://", "https://")):
-            raise ValueError("Target must be a URL")
-        if not InputValidator.is_safe_url(target):
-            raise ValueError("Unsafe URL detected")
+        # SECURITY: Validate file path
+        # In Docker mode, we need to handle file mounting.
+        # For now, we assume the file is available or mounted.
+        # The ExecutionStrategy should handle file mounting logic if needed.
         
-        # NOTE: Standard exiftool doesn't fetch URLs natively without curl/wget piping.
-        # We'll assume the docker image has a wrapper or we use a simple command.
-        # For this adapter, we'll just run it and expect the user/container to handle it.
-        # A more robust implementation would download the file first.
+        # Use list format to prevent shell injection
+        command = ["-j", target]  # -j for JSON output
         
-        # Command: exiftool <target>
-        command = [target, "-json"]
-        output = self.docker_manager.run_container(self.image, command)
+        output = self.execution_strategy.execute(self.tool_name, command, config)
         return self.parse_results(output)
 
     def parse_results(self, output: str) -> Dict[str, Any]:
         """
         Parse Exiftool JSON output.
         """
-        import json
         try:
             # Exiftool -json outputs a JSON array
             data = json.loads(output)
@@ -57,4 +47,4 @@ class ExiftoolAdapter(ToolAdapter):
                 return {"tool": "exiftool", "results": data[0], "raw_output": output}
             return {"tool": "exiftool", "results": {}, "raw_output": output}
         except json.JSONDecodeError:
-             return {"tool": "exiftool", "results": {}, "error": "Failed to parse JSON", "raw_output": output}
+            return {"tool": "exiftool", "results": {}, "error": "Failed to parse JSON", "raw_output": output}

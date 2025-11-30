@@ -6,12 +6,19 @@
 from typing import List, Dict, Any
 import logging
 from src.orchestration.docker_manager import DockerManager
+from src.orchestration.execution_strategy import (
+    ExecutionStrategy,
+    DockerExecutionStrategy,
+    NativeExecutionStrategy,
+    HybridExecutionStrategy
+)
 from src.orchestration.adapters.sherlock_adapter import SherlockAdapter
 from src.orchestration.adapters.theharvester_adapter import TheHarvesterAdapter
 from src.orchestration.adapters.h8mail_adapter import H8MailAdapter
 from src.orchestration.adapters.holehe_adapter import HoleheAdapter
 from src.orchestration.adapters.phoneinfoga_adapter import PhoneInfogaAdapter
-from src.orchestration.adapters.sublist3r_adapter import Sublist3rAdapter
+from src.orchestration.adapters.subfinder_adapter import SubfinderAdapter
+from src.orchestration.adapters.searxng_adapter import SearxngAdapter
 from src.orchestration.adapters.photon_adapter import PhotonAdapter
 from src.orchestration.adapters.exiftool_adapter import ExiftoolAdapter
 
@@ -22,24 +29,40 @@ class WorkflowManager:
     Manages sequential execution of OSINT tools.
     """
 
-    def __init__(self, cleanup_images: bool = False):
+    def __init__(self, cleanup_images: bool = False, execution_mode: str = "docker"):
         """
         Initialize WorkflowManager.
         
         Args:
             cleanup_images: If True, remove Docker images after execution (OPSEC mode)
+            execution_mode: Execution mode - "docker", "native", or "hybrid"
         """
         self.docker_manager = DockerManager()
         self.cleanup_images = cleanup_images
+        
+        # Initialize execution strategy based on mode
+        if execution_mode == "docker":
+            self.execution_strategy = DockerExecutionStrategy(self.docker_manager)
+        elif execution_mode == "native":
+            self.execution_strategy = NativeExecutionStrategy()
+        elif execution_mode == "hybrid":
+            docker_strategy = DockerExecutionStrategy(self.docker_manager)
+            native_strategy = NativeExecutionStrategy()
+            self.execution_strategy = HybridExecutionStrategy(docker_strategy, native_strategy)
+        else:
+            raise ValueError(f"Invalid execution mode: {execution_mode}")
+        
+        # Initialize all adapters with the execution strategy
         self.adapters = {
-            "sherlock": SherlockAdapter(self.docker_manager),
-            "theharvester": TheHarvesterAdapter(self.docker_manager),
-            "h8mail": H8MailAdapter(self.docker_manager),
-            "holehe": HoleheAdapter(self.docker_manager),
-            "phoneinfoga": PhoneInfogaAdapter(self.docker_manager),
-            "sublist3r": Sublist3rAdapter(self.docker_manager),
-            "photon": PhotonAdapter(self.docker_manager),
-            "exiftool": ExiftoolAdapter(self.docker_manager)
+            "sherlock": SherlockAdapter(self.execution_strategy),
+            "theharvester": TheHarvesterAdapter(self.execution_strategy),
+            "h8mail": H8MailAdapter(self.execution_strategy),
+            "holehe": HoleheAdapter(self.execution_strategy),
+            "phoneinfoga": PhoneInfogaAdapter(self.execution_strategy),
+            "subfinder": SubfinderAdapter(self.execution_strategy),
+            "searxng": SearxngAdapter(self.docker_manager),  # Service-based, needs DockerManager
+            "photon": PhotonAdapter(self.execution_strategy),
+            "exiftool": ExiftoolAdapter(self.execution_strategy)
         }
 
     def execute_workflow(self, workflow_name: str, target: str) -> Dict[str, Any]:

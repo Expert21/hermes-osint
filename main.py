@@ -80,7 +80,7 @@ async def main_async():
 
     # Phase 3: Modes & UX
     parser.add_argument("--mode", choices=["native", "docker", "hybrid"], default="native", help="Execution mode")
-    parser.add_argument("--tool", choices=["sherlock", "theharvester", "holehe", "phoneinfoga", "sublist3r", "photon", "exiftool"], help="Specific tool to run")
+    parser.add_argument("--tool", choices=["sherlock", "theharvester", "holehe", "phoneinfoga", "subfinder", "searxng", "photon", "exiftool"], help="Specific tool to run")
     parser.add_argument("--doctor", action="store_true", help="Run system diagnostics")
     parser.add_argument("--pull-images", action="store_true", help="Pull all required Docker images")
 

@@ -62,7 +62,7 @@ class HermesDoctor:
 
     def check_native_tools(self) -> Dict[str, bool]:
         """Check for presence of native tools."""
-        tools = ["sherlock", "theharvester", "holehe", "phoneinfoga", "sublist3r", "photon", "exiftool"]
+        tools = ["sherlock", "theharvester", "holehe", "phoneinfoga", "subfinder", "searxng", "photon", "exiftool"]
         for tool in tools:
             self.results["native_tools"][tool] = shutil.which(tool) is not None
         return self.results["native_tools"]

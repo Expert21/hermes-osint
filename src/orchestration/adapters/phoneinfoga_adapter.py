@@ -4,34 +4,36 @@
 # -----------------------------------------------------------------------------
 
 from typing import Dict, Any
-import json
+import re
 from src.orchestration.interfaces import ToolAdapter
-from src.orchestration.docker_manager import DockerManager
+from src.orchestration.execution_strategy import ExecutionStrategy
 from src.core.input_validator import InputValidator
 
 class PhoneInfogaAdapter(ToolAdapter):
-    def __init__(self, docker_manager: DockerManager):
-        self.docker_manager = docker_manager
-        self.image = "sundowndev/phoneinfoga"
+    def __init__(self, execution_strategy: ExecutionStrategy):
+        self.execution_strategy = execution_strategy
+        self.tool_name = "phoneinfoga"
 
     def execute(self, target: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Run PhoneInfoga against a phone number.
         
         Args:
-            target: Phone number (E.164 format preferred)
+            target: Phone number
             config: Configuration dictionary
             
         Returns:
             Parsed results from PhoneInfoga
         """
-        # SECURITY: Basic validation (allow + and digits)
-        if not all(c.isdigit() or c == '+' for c in target):
+        # SECURITY: Validate phone number (basic check)
+        # PhoneInfoga handles various formats, but we should ensure no shell chars
+        if not re.match(r'^\+?[0-9\-\s]+$', target):
              raise ValueError(f"Invalid phone number format: {target}")
         
         # Use list format to prevent shell injection
-        command = ["scan", "-n", target]
-        output = self.docker_manager.run_container(self.image, command)
+        command = ["scan", "-n", target, "--no-ansi"]
+        
+        output = self.execution_strategy.execute(self.tool_name, command, config)
         return self.parse_results(output)
 
     def parse_results(self, output: str) -> Dict[str, Any]:

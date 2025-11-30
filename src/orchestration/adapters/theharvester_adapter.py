@@ -7,15 +7,15 @@ from typing import Dict, Any
 import re
 import logging
 from src.orchestration.interfaces import ToolAdapter
-from src.orchestration.docker_manager import DockerManager
+from src.orchestration.execution_strategy import ExecutionStrategy
 from src.core.input_validator import InputValidator
 
 logger = logging.getLogger(__name__)
 
 class TheHarvesterAdapter(ToolAdapter):
-    def __init__(self, docker_manager: DockerManager):
-        self.docker_manager = docker_manager
-        self.image = "ghcr.io/laramies/theharvester:sha-af61197"
+    def __init__(self, execution_strategy: ExecutionStrategy):
+        self.execution_strategy = execution_strategy
+        self.tool_name = "theharvester"
 
     def execute(self, target: str, config: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -42,7 +42,7 @@ class TheHarvesterAdapter(ToolAdapter):
         # Use list format to prevent shell injection
         command = ["-d", sanitized_target, "-b", sources]
         
-        output = self.docker_manager.run_container(self.image, command)
+        output = self.execution_strategy.execute(self.tool_name, command, config)
         return self.parse_results(output)
 
     def parse_results(self, output: str) -> Dict[str, Any]:
