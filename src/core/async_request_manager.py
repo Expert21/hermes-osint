@@ -45,6 +45,7 @@ class AsyncRequestManager:
         """Close the ClientSession."""
         if self.session and not self.session.closed:
             await self.session.close()
+            await asyncio.sleep(0.25)
 
     async def fetch(
         self, 

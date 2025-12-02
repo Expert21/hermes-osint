@@ -79,11 +79,15 @@ class DockerExecutionStrategy(ExecutionStrategy):
                 environment["HTTPS_PROXY"] = proxy_url
                 environment["ALL_PROXY"] = proxy_url
         
-        return self.docker_manager.run_container(
+        # run_container returns a dict with keys: logs, extracted_dir, exit_code, metadata
+        result = self.docker_manager.run_container(
             image_name=image_name,
             command=command,
             environment=environment
         )
+        
+        # Return only the logs string for compatibility with ExecutionStrategy interface
+        return result.get("logs", "")
     
     def _is_valid_proxy_url(self, url: str) -> bool:
         """

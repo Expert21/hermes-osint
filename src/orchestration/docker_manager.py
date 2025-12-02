@@ -167,10 +167,10 @@ class DockerManager:
     # --------------------
     def pull_image(self, image_name: str):
         self._ensure_client()
-        if image_name not in TRUSTED_IMAGES:
+        if image_name not in self.TRUSTED_IMAGES:
             raise ValueError("Untrusted image")
 
-        trusted_ref = TRUSTED_IMAGES[image_name]  # repo@sha256:...
+        trusted_ref = self.TRUSTED_IMAGES[image_name]  # repo@sha256:...
         try:
             logger.info(f"Pulling {trusted_ref}")
             image = self.client.images.pull(trusted_ref)
@@ -193,9 +193,9 @@ class DockerManager:
 
     def remove_image(self, image_name: str, force: bool = False):
         self._ensure_client()
-        if image_name not in TRUSTED_IMAGES:
+        if image_name not in self.TRUSTED_IMAGES:
             raise ValueError("Cannot remove untrusted image")
-        trusted_image = TRUSTED_IMAGES[image_name]
+        trusted_image = self.TRUSTED_IMAGES[image_name]
         try:
             self.client.images.remove(trusted_image, force=force)
             logger.info(f"Removed image {trusted_image}")
@@ -315,15 +315,15 @@ class DockerManager:
          10. Attempt to remove leftover docker metadata
         """
         self._ensure_client()
-        if image_name not in TRUSTED_IMAGES:
+        if image_name not in self.TRUSTED_IMAGES:
             raise ValueError("Untrusted image")
 
-        trusted_image = TRUSTED_IMAGES[image_name]
+        trusted_image = self.TRUSTED_IMAGES[image_name]
 
         # filter environment
         filtered_env = None
         if environment:
-            filtered_env = {k: v for k, v in environment.items() if k in ALLOWED_ENV_VARS}
+            filtered_env = {k: v for k, v in environment.items() if k in self.ALLOWED_ENV_VARS}
             if len(filtered_env) != len(environment):
                 logger.warning("Filtered some environment variables")
 
@@ -363,7 +363,7 @@ class DockerManager:
                 privileged=False,
                 cap_drop=["ALL"],
                 security_opt=["no-new-privileges"],
-                log_config={"type": "none"},  # best-effort to avoid daemon logs
+                log_config={"type": "json-file", "config": {"max-size": "1m", "max-file": "1"}},  # Limited logging for output retrieval
             )
 
             # add seccomp and apparmor if provided (host paths)
@@ -467,6 +467,14 @@ class DockerManager:
             # Remove ephemeral network
             if network_name:
                 self._remove_network(network_name)
+
+            # Explicitly prune system to remove any dangling logs
+            # When a container is removed, logs are deleted, but we prune to be certain
+            try:
+                self.client.containers.prune()
+                logger.debug("Pruned container system to remove logs")
+            except Exception as e:
+                logger.debug(f"Failed to prune containers: {e}")
 
             # attempt to remove leftover docker container metadata directories (best-effort)
             if container_id:
