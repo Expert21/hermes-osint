@@ -358,6 +358,7 @@ class DockerManager:
                 cpu_quota=50000,
                 pids_limit=64,
                 network_mode=None if allow_network else "none",  # default: no network unless allowed
+                dns=["8.8.8.8", "1.1.1.1"] if allow_network else [],  # Add DNS servers when network is allowed
                 volumes={host_tempdir: {"bind": container_mount_path, "mode": "rw"}},
                 tmpfs={"/tmp": "size=64m,noexec,nosuid"},
                 privileged=False,
