@@ -1,0 +1,17 @@
+{
+    "name": "theharvester",
+    "version": "1.0.0",
+    "plugin_type": "tool",
+    "adapter_class": "src.plugins.theharvester.adapter.TheHarvesterAdapter",
+    "tool_name": "theharvester",
+    "docker_image": "ghcr.io/laramies/theharvester:sha-af61197",
+    "description": "E-mail, subdomain and people names harvester",
+    "author": "laramies",
+    "requires_credentials": [],
+    "supported_modes": [
+        "docker",
+        "native",
+        "hybrid"
+    ],
+    "capabilities": {}
+}

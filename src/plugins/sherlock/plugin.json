@@ -1,0 +1,17 @@
+{
+    "name": "sherlock",
+    "version": "1.0.0",
+    "plugin_type": "tool",
+    "adapter_class": "src.plugins.sherlock.adapter.SherlockAdapter",
+    "tool_name": "sherlock",
+    "docker_image": "sherlock/sherlock",
+    "description": "Hunt down social media accounts by username across social networks",
+    "author": "Sherlock Project",
+    "requires_credentials": [],
+    "supported_modes": [
+        "docker",
+        "native",
+        "hybrid"
+    ],
+    "capabilities": {}
+}

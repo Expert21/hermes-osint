@@ -1,0 +1,17 @@
+{
+    "name": "exiftool",
+    "version": "1.0.0",
+    "plugin_type": "tool",
+    "adapter_class": "src.plugins.exiftool.adapter.ExiftoolAdapter",
+    "tool_name": "exiftool",
+    "docker_image": "ai2ys/exiftool",
+    "description": "Read, Write and Edit Meta Information",
+    "author": "Phil Harvey",
+    "requires_credentials": [],
+    "supported_modes": [
+        "docker",
+        "native",
+        "hybrid"
+    ],
+    "capabilities": {}
+}

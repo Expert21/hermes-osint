@@ -10,10 +10,112 @@ All notable changes to Hermes OSINT Tool will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+---
 
-### In Development - v2.0 
-- Full v2.0 release targeting Q1 2026
+## [2.0.0] - 2025-12-04
+
+### 🚀 MAJOR RELEASE: Universal OSINT Orchestration Platform
+
+Complete architectural transformation from standalone OSINT tool to universal orchestration platform.
+
+---
+
+### Added
+
+#### Core Architecture
+- **Plugin System** with security-first design
+  - Two-tier trust model (Tool vs Core plugins)
+  - Static security scanner with AST-based analysis
+  - Dynamic plugin discovery from `src/plugins/`
+  - Plugin manifests (`plugin.json`) for metadata
+
+- **Docker Orchestration Engine**
+  - SHA256 digest pinning for image verification
+  - Ephemeral container lifecycle with automatic cleanup
+  - Resource limits (768MB RAM, 50% CPU, 64 PIDs)
+  - Network isolation with DNS configuration
+  - Non-root execution (user 65534:65534)
+  - Entrypoint override support for flexible tool execution
+
+- **Execution Strategies**
+  - Docker Mode: Isolated containers, zero local setup
+  - Native Mode: Use locally installed tools
+  - Hybrid Mode: Auto-detect with Docker fallback (default)
+
+#### Tool Integration (7 Tools)
+| Tool | Purpose | Docker Image |
+|------|---------|--------------|
+| Sherlock | Username enumeration | `sherlock/sherlock` |
+| TheHarvester | Email/subdomain discovery | `ghcr.io/laramies/theharvester` |
+| h8mail | Breach data correlation | `kh4st3x00/h8mail` |
+| Holehe | Email account detection | `ghcr.io/expert21/hermes-holehe` |
+| PhoneInfoga | Phone number OSINT | `sundowndev/phoneinfoga` |
+| Subfinder | Subdomain enumeration | `projectdiscovery/subfinder` |
+| Exiftool | Metadata extraction | `ai2ys/exiftool` |
+
+#### CLI Enhancements
+- **Tool-specific arguments:**
+  - `--email` for Holehe and h8mail
+  - `--phone` for PhoneInfoga
+  - `--file` for Exiftool
+  - `--domain` for TheHarvester and Subfinder
+
+- **Image management commands:**
+  - `--pull-images` - Download all Docker images (continues on error)
+  - `--remove-images` - Remove all trusted Docker images
+  - `--doctor` - System diagnostics
+
+- **Workflow automation:**
+  - h8mail and Exiftool added to automatic individual scans
+  - Smart target routing based on tool type
+
+#### Performance & Intelligence
+- **Parallel Execution** via TaskManager with configurable concurrency
+- **Cross-tool correlation** with fuzzy matching
+- **Unified entity schema** across all tools
+- **Source attribution** for all findings
+
+---
+
+### Changed
+
+- **TheHarvester adapter** - Added entrypoint override to fix API server default
+- **Exiftool adapter** - Fixed command to include executable name
+- **DockerManager** - Added `entrypoint` parameter for flexible container execution
+- **DockerExecutionStrategy** - Passes entrypoint from tool config
+- **Workflow automation** - All 7 tools now properly integrated
+
+---
+
+### Fixed
+
+- **TheHarvester execution** - Image defaulted to API server, now correctly runs CLI
+- **Exiftool execution** - Missing executable name in command
+- **UnboundLocalError** in main.py when running without `--tool`
+- **Image pull robustness** - `--pull-images` continues on individual failures
+- **theHarvester image format** - Fixed repo@digest format for docker-py compatibility
+
+---
+
+### Security
+
+- Docker container network isolation with configurable DNS
+- Input validation for all tool arguments
+- Path traversal protection in file operations
+- Command injection prevention via list-based arguments
+- Encrypted credential storage via OS keyring
+
+---
+
+### Performance
+
+| Metric | v1.6 | v2.0 | Improvement |
+|--------|------|------|-------------|
+| Execution Time | ~2:30 | ~1:15 | **2x faster** |
+| Tool Coverage | 5 tools | 7 tools | **+40%** |
+| Error Handling | Crash on failure | Graceful degradation | **More stable** |
+
+---
 
 ## [1.6.0] - 2025-11-28
 

@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 import logging
 from datetime import datetime
@@ -288,6 +284,41 @@ def generate_html_report(results: Dict[str, Any], output_file: str):
         </div>
 """
     
+    # Connections Section
+    connections = results.get('connections', [])
+    if connections:
+        html_content += """
+        <div class="section">
+            <h2>🔗 Correlated Findings</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Relationship</th>
+                        <th>Entities</th>
+                        <th>Type</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+"""
+        for conn in connections:
+            conf = conn.get('confidence', 0.0)
+            badge_class = 'badge-high' if conf >= 0.8 else ('badge-medium' if conf >= 0.5 else 'badge-low')
+            source = conn.get('source_entity', {}).get('value', 'N/A')
+            target = conn.get('target_entity', {}).get('value', 'N/A')
+            
+            html_content += f"""                    <tr>
+                        <td><strong>{conn.get('relationship', 'N/A')}</strong></td>
+                        <td>{source} ↔ {target}</td>
+                        <td><span class="source-tag">{conn.get('type', 'N/A')}</span></td>
+                        <td><span class="badge {badge_class}">{int(conf*100)}%</span></td>
+                    </tr>
+"""
+        html_content += """                </tbody>
+            </table>
+        </div>
+"""
+
     # Footer
     html_content += """
         <div class="footer">

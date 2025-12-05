@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Union, Optional
@@ -46,26 +42,40 @@ class DockerExecutionStrategy(ExecutionStrategy):
     def __init__(self, docker_manager: DockerManager):
         self.docker_manager = docker_manager
         # Map generic tool names to Docker image names
-        self.tool_image_map = {
+        self.trusted_image_map = {
             "sherlock": "sherlock/sherlock",
-            "theharvester": "ghcr.io/laramies/theharvester:sha-af61197",
+            "theharvester": "ghcr.io/laramies/theharvester:sha-97e89aa",
             "h8mail": "khast3x/h8mail",
-            "holehe": "gmrnonoss/holehe",
+            "holehe": "ghcr.io/expert21/hermes-holehe",
             "phoneinfoga": "sundowndev/phoneinfoga",
             "subfinder": "projectdiscovery/subfinder",
-            "searxng": "searxng/searxng",
-            "photon": "s0md3v/photon",
             "exiftool": "ai2ys/exiftool"
         }
+        # Third-party plugin images (registered at runtime)
+        self.plugin_image_map = {}
+
+    def register_plugin_image(self, tool_name: str, image_name: str):
+        """Register third-party plugin Docker image (not in trusted list)."""
+        if tool_name in self.trusted_image_map:
+            raise ValueError(f"Cannot override trusted image for {tool_name}")
+        self.plugin_image_map[tool_name] = image_name
+        logger.info(f"Registered plugin image: {tool_name} -> {image_name}")
 
     def is_available(self, tool_name: str) -> bool:
-        return self.docker_manager.is_available and tool_name in self.tool_image_map
+        return self.docker_manager.is_available and (
+            tool_name in self.trusted_image_map or 
+            tool_name in self.plugin_image_map
+        )
 
     def execute(self, tool_name: str, command: List[str], config: Dict[str, Any]) -> str:
         if not self.is_available(tool_name):
             raise RuntimeError(f"Tool {tool_name} not available in Docker mode")
             
-        image_name = self.tool_image_map[tool_name]
+        # Check trusted list first, then plugin list
+        image_name = self.trusted_image_map.get(tool_name) or self.plugin_image_map.get(tool_name)
+        
+        if not image_name:
+             raise RuntimeError(f"No Docker image found for tool: {tool_name}")
         
         # Construct environment from config if present
         environment = {}
@@ -84,6 +94,7 @@ class DockerExecutionStrategy(ExecutionStrategy):
             image_name=image_name,
             command=command,
             environment=environment,
+            entrypoint=config.get("entrypoint"),
             allow_network=True  # Enable network access for tools that need it
         )
         

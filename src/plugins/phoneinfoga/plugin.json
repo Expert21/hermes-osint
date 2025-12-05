@@ -1,0 +1,17 @@
+{
+    "name": "phoneinfoga",
+    "version": "1.0.0",
+    "plugin_type": "tool",
+    "adapter_class": "src.plugins.phoneinfoga.adapter.PhoneInfogaAdapter",
+    "tool_name": "phoneinfoga",
+    "docker_image": "sundowndev/phoneinfoga",
+    "description": "Advanced information gathering & OSINT framework for phone numbers",
+    "author": "sundowndev",
+    "requires_credentials": [],
+    "supported_modes": [
+        "docker",
+        "native",
+        "hybrid"
+    ],
+    "capabilities": {}
+}

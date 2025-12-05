@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 from src.reporting.html_report import generate_html_report
 from src.reporting.markdown_report import generate_markdown_report

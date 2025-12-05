@@ -1,12 +1,10 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 import logging
 from typing import List, Dict
 from urllib.parse import urlparse, urlunparse
 from difflib import SequenceMatcher
+from src.core.entities import Entity
+from src.core.correlation import CorrelationEngine
 
 logger = logging.getLogger("OSINT_Tool")
 
@@ -163,57 +161,7 @@ class ResultDeduplicator:
         
         return min(score, 100)  # Cap at 100
     
-    def identify_connections(self, results: List[Dict]) -> List[Dict[str, any]]:
-        """
-        Identify potential connections between discovered profiles.
-        
-        Args:
-            results: List of result dictionaries
-            
-        Returns:
-            List of connection dictionaries
-        """
-        connections = []
-        
-        # Group results by platform/source
-        platforms = {}
-        usernames = {}
-        
-        for result in results:
-            platform = result.get('platform') or result.get('source', 'unknown')
-            username = result.get('username')
-            
-            if platform not in platforms:
-                platforms[platform] = []
-            platforms[platform].append(result)
-            
-            if username:
-                if username not in usernames:
-                    usernames[username] = []
-                usernames[username].append(platform)
-        
-        # Identify cross-platform connections based on username reuse
-        for username, platform_list in usernames.items():
-            if len(platform_list) > 1:
-                connections.append({
-                    'type': 'username_reuse',
-                    'username': username,
-                    'platforms': platform_list,
-                    'description': f"Username '{username}' used across {len(platform_list)} platforms: {', '.join(platform_list)}",
-                    'confidence': 'high'
-                })
 
-        # Identify cross-platform connections (general)
-        platform_list = list(platforms.keys())
-        if len(platform_list) > 1:
-             connections.append({
-                'type': 'cross_platform_presence',
-                'platforms': platform_list,
-                'description': f"Target found on {len(platform_list)} different platforms/sources",
-                'confidence': 'medium'
-            })
-        
-        return connections
     
     def merge_and_score_results(
         self,
@@ -245,8 +193,33 @@ class ResultDeduplicator:
         # Sort by quality score (highest first)
         unique_results.sort(key=lambda x: x.get('quality_score', 0), reverse=True)
         
-        # Identify connections
-        connections = self.identify_connections(unique_results)
+        # Correlate results
+        # Convert dicts to Entities for the engine
+        entities_for_correlation = []
+        for r in unique_results:
+            # Determine type and value
+            entity_type = "unknown"
+            value = ""
+            
+            if r.get('platform'):
+                entity_type = "username"
+                value = r.get('username', '')
+            elif r.get('url'):
+                entity_type = "url"
+                value = r.get('url', '')
+            
+            if value:
+                entities_for_correlation.append(Entity(
+                    type=entity_type,
+                    value=value,
+                    source=r.get('source') or r.get('platform', 'unknown'),
+                    confidence=1.0, # Default
+                    metadata=r
+                ))
+        
+        correlation_engine = CorrelationEngine()
+        connections = correlation_engine.correlate(entities_for_correlation)
+        connection_dicts = [c.to_dict() for c in connections]
         
         # Separate back into categories
         final_search = [r for r in unique_results if r.get('source') and not r.get('platform')]
@@ -259,7 +232,6 @@ class ResultDeduplicator:
             'duplicates_removed': len(all_results) - len(unique_results),
             'search_results': len(final_search),
             'social_results': len(final_social),
-            'connections_found': len(connections),
             'avg_quality_score': sum(r.get('quality_score', 0) for r in unique_results) / len(unique_results) if unique_results else 0,
             'high_quality_results': len([r for r in unique_results if r.get('quality_score', 0) >= 70])
         }
@@ -268,12 +240,12 @@ class ResultDeduplicator:
         logger.info(f"  Total results: {stats['total_original']} → {stats['total_unique']}")
         logger.info(f"  Average quality score: {stats['avg_quality_score']:.1f}/100")
         logger.info(f"  High quality results (≥70): {stats['high_quality_results']}")
-        logger.info(f"  Connections identified: {stats['connections_found']}")
+        logger.info(f"  Connections identified: {len(connection_dicts)}")
         
         return {
             'search_engines': final_search,
             'social_media': final_social,
-            'connections': connections,
+            'connections': connection_dicts,
             'statistics': stats
         }
 

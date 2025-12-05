@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
-
 """
 Hermes - Advanced OSINT Intelligence Gathering Tool
 Entry point for the command-line interface

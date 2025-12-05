@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 import logging
 import shutil
@@ -62,7 +58,7 @@ class HermesDoctor:
 
     def check_native_tools(self) -> Dict[str, bool]:
         """Check for presence of native tools."""
-        tools = ["sherlock", "theharvester", "holehe", "phoneinfoga", "subfinder", "searxng", "photon", "exiftool"]
+        tools = ["sherlock", "theharvester", "holehe", "phoneinfoga", "subfinder", "exiftool"]
         for tool in tools:
             self.results["native_tools"][tool] = shutil.which(tool) is not None
         return self.results["native_tools"]

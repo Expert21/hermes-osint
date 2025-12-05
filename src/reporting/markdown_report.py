@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 import logging
 from datetime import datetime
@@ -84,6 +80,24 @@ def generate_markdown_report(results: Dict[str, Any], output_file: str):
             source = profile.get('source', 'Unknown')
             conf = profile.get('confidence', 0.0)
             md_content.append(f"| {platform} | {url} | {source} | {int(conf*100)}% |")
+        
+        md_content.append("")
+    
+    # Connections
+    connections = results.get('connections', [])
+    if connections:
+        md_content.append("## 🔗 Correlated Findings\n")
+        md_content.append("| Relationship | Entities | Type | Confidence |")
+        md_content.append("|--------------|----------|------|------------|")
+        
+        for conn in connections:
+            rel = conn.get('relationship', 'N/A')
+            type_ = conn.get('type', 'N/A')
+            source = conn.get('source_entity', {}).get('value', 'N/A')
+            target = conn.get('target_entity', {}).get('value', 'N/A')
+            conf = conn.get('confidence', 0.0)
+            
+            md_content.append(f"| {rel} | {source} ↔ {target} | {type_} | {int(conf*100)}% |")
         
         md_content.append("")
     

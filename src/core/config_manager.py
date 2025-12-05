@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 import yaml
 import logging
@@ -43,7 +39,6 @@ class ConfigManager:
                 'duckduckgo': True,
                 'bing': True,
                 'mojeek': True,
-                'searxng': True,
                 'publicwww': True,
                 'wayback': True,
                 'archive_today': True,

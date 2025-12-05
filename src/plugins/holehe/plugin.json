@@ -1,0 +1,17 @@
+{
+    "name": "holehe",
+    "version": "1.0.0",
+    "plugin_type": "tool",
+    "adapter_class": "src.plugins.holehe.adapter.HoleheAdapter",
+    "tool_name": "holehe",
+    "docker_image": "ghcr.io/expert21/hermes-holehe",
+    "description": "Check if an email is attached to an account on sites like Instagram, Twitter",
+    "author": "megadose",
+    "requires_credentials": [],
+    "supported_modes": [
+        "docker",
+        "native",
+        "hybrid"
+    ],
+    "capabilities": {}
+}

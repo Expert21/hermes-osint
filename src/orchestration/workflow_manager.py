@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 from typing import List, Dict, Any
 import logging
@@ -12,15 +8,7 @@ from src.orchestration.execution_strategy import (
     NativeExecutionStrategy,
     HybridExecutionStrategy
 )
-from src.orchestration.adapters.sherlock_adapter import SherlockAdapter
-from src.orchestration.adapters.theharvester_adapter import TheHarvesterAdapter
-from src.orchestration.adapters.h8mail_adapter import H8MailAdapter
-from src.orchestration.adapters.holehe_adapter import HoleheAdapter
-from src.orchestration.adapters.phoneinfoga_adapter import PhoneInfogaAdapter
-from src.orchestration.adapters.subfinder_adapter import SubfinderAdapter
-from src.orchestration.adapters.searxng_adapter import SearxngAdapter
-from src.orchestration.adapters.photon_adapter import PhotonAdapter
-from src.orchestration.adapters.exiftool_adapter import ExiftoolAdapter
+# Adapters are now loaded dynamically via PluginLoader
 from src.core.entities import ToolResult, Entity
 
 logger = logging.getLogger(__name__)
@@ -54,17 +42,13 @@ class WorkflowManager:
             raise ValueError(f"Invalid execution mode: {execution_mode}")
         
         # Initialize all adapters with the execution strategy
-        self.adapters = {
-            "sherlock": SherlockAdapter(self.execution_strategy),
-            "theharvester": TheHarvesterAdapter(self.execution_strategy),
-            "h8mail": H8MailAdapter(self.execution_strategy),
-            "holehe": HoleheAdapter(self.execution_strategy),
-            "phoneinfoga": PhoneInfogaAdapter(self.execution_strategy),
-            "subfinder": SubfinderAdapter(self.execution_strategy),
-            "searxng": SearxngAdapter(self.docker_manager),  # Service-based, needs DockerManager
-            "photon": PhotonAdapter(self.execution_strategy),
-            "exiftool": ExiftoolAdapter(self.execution_strategy)
-        }
+        # Initialize PluginLoader and load adapters
+        from src.core.plugin_loader import PluginLoader
+        
+        self.plugin_loader = PluginLoader(self.execution_strategy)
+        self.adapters = self.plugin_loader.load_all_plugins()
+        
+        logger.info(f"Loaded {len(self.adapters)} tool adapters: {list(self.adapters.keys())}")
 
     def execute_workflow(self, workflow_name: str, target: str) -> Dict[str, Any]:
         """
@@ -159,6 +143,7 @@ class WorkflowManager:
         domain: str = None, 
         email: str = None, 
         phone: str = None,
+        file: str = None,
         stealth_mode: bool = False,
         username_variations: List[str] = None
     ) -> Dict[str, Any]:
@@ -185,13 +170,14 @@ class WorkflowManager:
         individual_tools = [
             ("sherlock", None),
             ("holehe", email),
-            ("phoneinfoga", phone)
+            ("h8mail", email),
+            ("phoneinfoga", phone),
+            ("exiftool", file)
         ]
         
         company_tools = [
             ("theharvester", "domain"),
-            ("subfinder", "domain"),
-            ("photon", "domain")
+            ("subfinder", "domain")
         ]
 
         # Determine domain for company tools

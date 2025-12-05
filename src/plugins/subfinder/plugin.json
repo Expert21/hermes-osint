@@ -1,0 +1,17 @@
+{
+    "name": "subfinder",
+    "version": "1.0.0",
+    "plugin_type": "tool",
+    "adapter_class": "src.plugins.subfinder.adapter.SubfinderAdapter",
+    "tool_name": "subfinder",
+    "docker_image": "projectdiscovery/subfinder",
+    "description": "Subdomain discovery tool",
+    "author": "projectdiscovery",
+    "requires_credentials": [],
+    "supported_modes": [
+        "docker",
+        "native",
+        "hybrid"
+    ],
+    "capabilities": {}
+}

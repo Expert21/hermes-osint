@@ -1,7 +1,3 @@
-# -----------------------------------------------------------------------------
-# Hermes OSINT - V2.0 Alpha
-# This project is currently in an alpha state.
-# -----------------------------------------------------------------------------
 
 import argparse
 import sys
@@ -26,11 +22,11 @@ from src.core.input_validator import InputValidator
 # Priority 2 & 3 imports
 from src.modules.username_generator import generate_username_variations
 from src.core.cache_manager import get_cache_manager
-from src.core.interactive import run_interactive_mode
+
 
 async def main_async():
     parser = argparse.ArgumentParser(
-        description="OSINT Tool - Social Media & Email Enumeration (v2.0 Alpha)",
+        description="OSINT Tool - Social Media & Email Enumeration (v2.0)",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -52,6 +48,8 @@ async def main_async():
     parser.add_argument("--company", help="Company name for verification context")
     parser.add_argument("--location", help="Location for verification context")
     parser.add_argument("--email", help="Known email for verification context")
+    parser.add_argument("--phone", help="Phone number for PhoneInfoga")
+    parser.add_argument("--file", help="File path for Exiftool analysis")
     
     # Optional flags
     parser.add_argument("--stealth", action="store_true", help="Enable stealth mode (no direct target contact)")
@@ -66,8 +64,7 @@ async def main_async():
     parser.add_argument("--clear-cache", action="store_true", help="Clear all cached results")
     parser.add_argument("--cache-stats", action="store_true", help="Show cache statistics")
     
-    # Priority 3: Interactive Mode
-    parser.add_argument("--interactive", "-i", action="store_true", help="Run in interactive wizard mode")
+
     
     # Proxy Configuration
     parser.add_argument("--proxies", help="Path to proxy list file")
@@ -75,12 +72,30 @@ async def main_async():
 
     # Phase 3: Modes & UX
     parser.add_argument("--mode", choices=["native", "docker", "hybrid"], default="native", help="Execution mode")
-    parser.add_argument("--tool", choices=["sherlock", "theharvester", "holehe", "phoneinfoga", "subfinder", "searxng", "photon", "exiftool"], help="Specific tool to run")
+    parser.add_argument("--tool", choices=["sherlock", "theharvester", "holehe", "phoneinfoga", "subfinder", "exiftool"], help="Specific tool to run")
     parser.add_argument("--doctor", action="store_true", help="Run system diagnostics")
     parser.add_argument("--pull-images", action="store_true", help="Pull all required Docker images")
+    parser.add_argument("--remove-images", action="store_true", help="Remove all trusted Docker images")
 
     # Environment Management
     parser.add_argument("--import-env", action="store_true", help="Import .env file values into secure encrypted storage")
+    
+    # Plugin Management
+    subparsers = parser.add_subparsers(dest="command", help="Sub-commands")
+    
+    plugins_parser = subparsers.add_parser("plugins", help="Manage plugins")
+    plugins_subparsers = plugins_parser.add_subparsers(dest="plugin_command", help="Plugin commands")
+    
+    # plugins list
+    plugins_subparsers.add_parser("list", help="List all plugins")
+    
+    # plugins info <name>
+    info_parser = plugins_subparsers.add_parser("info", help="Show plugin details")
+    info_parser.add_argument("plugin_name", help="Name of the plugin")
+    
+    # plugins scan <path>
+    scan_parser = plugins_subparsers.add_parser("scan", help="Scan a directory for security issues")
+    scan_parser.add_argument("path", help="Path to scan")
     
     args = parser.parse_args()
     
@@ -110,18 +125,99 @@ async def main_async():
         if not dm.is_available:
             logger.error("Docker is not available.")
             return 1
+        
         for image in dm.TRUSTED_IMAGES:
-            dm.pull_image(image)
-        logger.info("All images pulled successfully.")
+            try:
+                dm.pull_image(image)
+            except Exception as e:
+                logger.error(f"Failed to pull {image}: {e}")
+                continue
+        logger.info("Image pull process completed.")
         return 0
 
-    # Handle interactive mode
-    if args.interactive:
-        wizard_config = run_interactive_mode()
-        if not wizard_config:
-            return 0
-        for key, value in wizard_config.items():
-            setattr(args, key, value)
+    # Handle Remove Images
+    if args.remove_images:
+        from src.orchestration.docker_manager import DockerManager
+        logger.info("Removing Docker images...")
+        dm = DockerManager()
+        if not dm.is_available:
+            logger.error("Docker is not available.")
+            return 1
+        for image in dm.TRUSTED_IMAGES:
+            try:
+                dm.remove_image(image, force=True)
+            except Exception as e:
+                logger.warning(f"Failed to remove {image}: {e}")
+        logger.info("All trusted images removed successfully.")
+        return 0
+
+    # Handle Plugins Command
+    if args.command == "plugins":
+        from src.core.plugin_loader import PluginLoader
+        from src.orchestration.execution_strategy import NativeExecutionStrategy
+        from src.core.plugin_security_scanner import PluginSecurityScanner
+        
+        # Initialize loader with dummy strategy (we just need discovery/metadata)
+        loader = PluginLoader(NativeExecutionStrategy())
+        
+        if args.plugin_command == "list":
+            manifests = loader.discover_plugins()
+            logger.info(f"Found {len(manifests)} plugins:")
+            for m in manifests:
+                status = "Tool" if m.plugin_type == "tool" else "Core"
+                logger.info(f"  - {m.name} v{m.version} ({status}) by {m.author}")
+                
+        elif args.plugin_command == "info":
+            manifests = loader.discover_plugins()
+            target = next((m for m in manifests if m.name == args.plugin_name), None)
+            if target:
+                logger.info(f"Plugin: {target.name}")
+                logger.info(f"Version: {target.version}")
+                logger.info(f"Type: {target.plugin_type}")
+                logger.info(f"Description: {target.description}")
+                logger.info(f"Author: {target.author}")
+                logger.info(f"Adapter: {target.adapter_class}")
+                if target.tool_name:
+                    logger.info(f"Tool Name: {target.tool_name}")
+                if target.docker_image:
+                    logger.info(f"Docker Image: {target.docker_image}")
+                logger.info(f"Capabilities: {target.capabilities}")
+            else:
+                logger.error(f"Plugin '{args.plugin_name}' not found.")
+                
+        elif args.plugin_command == "scan":
+            scanner = PluginSecurityScanner()
+            # Scan directory
+            import os
+            path = args.path
+            if not os.path.exists(path):
+                logger.error(f"Path not found: {path}")
+                return 1
+                
+            logger.info(f"Scanning {path}...")
+            has_issues = False
+            for root, _, files in os.walk(path):
+                for file in files:
+                    if file.endswith(".py"):
+                        full_path = os.path.join(root, file)
+                        result = scanner.scan_file(full_path)
+                        if not result.passed or result.warnings:
+                            has_issues = True
+                            logger.info(f"\nFile: {file}")
+                            logger.info(f"Passed: {result.passed} (Confidence: {result.confidence:.2f})")
+                            for err in result.errors:
+                                logger.error(f"  [ERROR] {err.message} (Line {err.line_number})")
+                            for warn in result.warnings:
+                                logger.warning(f"  [WARNING] {warn.message}")
+            
+            if not has_issues:
+                logger.info("✓ No security issues found.")
+            else:
+                logger.warning("\nSecurity scan completed with issues.")
+                
+        return 0
+
+
     
     # Handle configuration profile commands
     config_manager = ConfigManager()
@@ -174,36 +270,56 @@ async def main_async():
         # Tool execution mode (Single tool)
         logger.info(f"Starting execution for {args.tool} in {args.mode} mode...")
         
-        from src.orchestration.execution_strategy import DockerExecutionStrategy, NativeExecutionStrategy, HybridExecutionStrategy
-        from src.orchestration.docker_manager import DockerManager
         
-        # Initialize Strategy
-        strategy = None
-        if args.mode == "docker":
-            strategy = DockerExecutionStrategy(DockerManager())
-        elif args.mode == "native":
-            strategy = NativeExecutionStrategy()
-        elif args.mode == "hybrid":
-            strategy = HybridExecutionStrategy(DockerExecutionStrategy(DockerManager()), NativeExecutionStrategy())
-            
+        # Initialize WorkflowManager with the specified mode
+        workflow_manager = WorkflowManager(execution_mode=args.mode)
+        
+        # Check if tool exists in loaded adapters
+        if args.tool not in workflow_manager.adapters:
+            logger.error(f"Tool '{args.tool}' not found. Available tools: {list(workflow_manager.adapters.keys())}")
+            return 1
+        
+        # Get the adapter for the requested tool
+        adapter = workflow_manager.adapters[args.tool]
+        
+        # Check if tool can run
+        if not adapter.can_run():
+            logger.error(f"Tool '{args.tool}' cannot run in {args.mode} mode. Try --mode hybrid or --mode docker")
+            return 1
+        
         try:
-            # We need to map tool names to adapters or just run raw commands?
-            # The original code used adapters. Let's stick to adapters but inject the strategy.
-            # For now, only Sherlock adapter is updated.
-            
-            if args.tool == "sherlock":
-                from src.orchestration.adapters.sherlock_adapter import SherlockAdapter
-                adapter = SherlockAdapter(strategy)
-                results = adapter.execute(args.target, {})
-                logger.info(f"Results: {results}")
-                return 0
+            # Prepare target based on tool type and arguments
+            # Use email for email tools, phone for phoneinfoga, file for exiftool, otherwise use target
+            if args.email and args.tool in ["holehe", "h8mail"]:
+                target = args.email
+            elif args.phone and args.tool == "phoneinfoga":
+                target = args.phone
+            elif args.file and args.tool == "exiftool":
+                target = args.file
             else:
-                logger.warning(f"Adapter for {args.tool} not yet updated for new strategy. Running legacy Docker mode if available.")
-                # Fallback to legacy logic if needed, or just fail for now as we are in dev
+                target = args.target
+            
+            logger.info(f"Executing {args.tool} with target: {target}")
+            result = adapter.execute(target, {})
+            
+            # Display results
+            if result.error:
+                logger.error(f"{args.tool} failed: {result.error}")
                 return 1
-
+            else:
+                logger.info(f"✓ {args.tool} completed successfully")
+                logger.info(f"Found {len(result.entities)} results")
+                
+                # Print entities
+                for entity in result.entities:
+                    logger.info(f"  - {entity.type}: {entity.value}")
+                
+                return 0
+                
         except Exception as e:
             logger.error(f"Execution failed: {e}")
+            import traceback
+            traceback.print_exc()
             return 1
 
     if not args.target or not args.type:
@@ -266,6 +382,8 @@ async def main_async():
             target_type=args.type,
             domain=args.domain,
             email=args.email,
+            phone=args.phone,
+            file=args.file,
             stealth_mode=args.stealth,
             username_variations=username_variations
         )
