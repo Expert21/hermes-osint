@@ -4,7 +4,7 @@
     "plugin_type": "tool",
     "adapter_class": "src.plugins.h8mail.adapter.H8MailAdapter",
     "tool_name": "h8mail",
-    "docker_image": "khast3x/h8mail",
+    "docker_image": "kh4st3x00/h8mail",
     "description": "Email OSINT & Breach hunting tool",
     "author": "khast3x",
     "requires_credentials": [],

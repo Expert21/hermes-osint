@@ -45,7 +45,7 @@ class DockerExecutionStrategy(ExecutionStrategy):
         self.trusted_image_map = {
             "sherlock": "sherlock/sherlock",
             "theharvester": "ghcr.io/laramies/theharvester:sha-97e89aa",
-            "h8mail": "khast3x/h8mail",
+            "h8mail": "kh4st3x00/h8mail",
             "holehe": "ghcr.io/expert21/hermes-holehe",
             "phoneinfoga": "sundowndev/phoneinfoga",
             "subfinder": "projectdiscovery/subfinder",
