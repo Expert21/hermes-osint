@@ -4,12 +4,10 @@ cryptography==46.0.3
 dnspython==2.8.0
 idna==3.11
 packaging==25.0
-pillow==12.0.0
 python-dotenv==1.2.1
 PyYAML==6.0.3
 requests==2.32.5
 urllib3==2.5.0
-validators==0.35.0
 tqdm==4.67.1
 typing_extensions==4.15.0
 
@@ -25,12 +23,9 @@ yarl==1.22.0
 # HTML/Web parsing
 beautifulsoup4>=4.12.0
 soupsieve==2.8
-playwright==1.56.0
-pyee==13.0.0
 
 # Reporting
 reportlab==4.4.5
-pypdf==6.4.0
 bleach==6.3.0
 webencodings==0.5.1
 
@@ -63,5 +58,6 @@ platformdirs==4.3.8
 
 # Other dependencies
 attrs==25.4.0
-greenlet==3.2.4
-googlesearch-python==1.3.0
+
+# LLM Analysis
+ollama>=0.4.0

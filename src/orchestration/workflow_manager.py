@@ -1,6 +1,8 @@
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import logging
+import asyncio
+import concurrent.futures
 from src.orchestration.docker_manager import DockerManager
 from src.orchestration.execution_strategy import (
     ExecutionStrategy,
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class WorkflowManager:
     """
-    Manages sequential execution of OSINT tools.
+    Manages parallel execution of OSINT tools.
     """
 
     def __init__(self, cleanup_images: bool = False, execution_mode: str = "docker"):
@@ -145,37 +147,21 @@ class WorkflowManager:
             logger.error(f"{tool_name} failed: {error_msg}")
             return {"error": error_msg}
 
-    def run_all_tools(
-        self, 
-        target: str, 
-        target_type: str, 
-        domain: str = None, 
-        email: str = None, 
+    def _prepare_tool_tasks(
+        self,
+        target: str,
+        target_type: str,
+        domain: str = None,
+        email: str = None,
         phone: str = None,
-        file: str = None,
-        stealth_mode: bool = False,
-        username_variations: List[str] = None
-    ) -> Dict[str, Any]:
+        file: str = None
+    ) -> List[Tuple[str, str]]:
         """
-        Run all applicable tools based on target type and provided inputs.
-        Implements "Smart Default" behavior by checking tool availability.
+        Prepare list of (tool_name, exec_target) tuples based on target type.
         """
-        results = {
-            "target": target,
-            "target_type": target_type,
-            "tool_results": {}
-        }
-        
         from src.core.input_validator import InputValidator
-
-        # Common config for all adapters
-        tool_config = {
-            "stealth_mode": stealth_mode
-        }
-
+        
         # Define tool lists
-        # Tuples of (tool_name, dependency_type)
-        # dependency_type: "email", "phone", "file", "domain", or None (main target)
         individual_tools = [
             ("sherlock", None),
             ("holehe", "email"),
@@ -188,7 +174,7 @@ class WorkflowManager:
             ("theharvester", "domain"),
             ("subfinder", "domain")
         ]
-
+        
         # Determine domain for company tools
         target_domain = domain
         if target_type == "company" and not target_domain:
@@ -197,23 +183,22 @@ class WorkflowManager:
                 target_domain = target
             except ValueError:
                 pass
-
+        
         # Select tools based on type
         tools_to_run = []
         if target_type == "individual":
             tools_to_run = individual_tools
         elif target_type == "company":
             tools_to_run = company_tools
-
-        # Execute tools
+        
+        # Build task list
+        tasks = []
         for tool_name, dep_type in tools_to_run:
-            # Determine execution target
             exec_target = target
             
-            # Handle dependencies
             if dep_type == "domain":
                 if not target_domain:
-                    continue # Skip if no domain
+                    continue
                 exec_target = target_domain
             elif dep_type == "email":
                 if not email:
@@ -227,14 +212,93 @@ class WorkflowManager:
                 if not file:
                     continue
                 exec_target = file
+            
+            tasks.append((tool_name, exec_target))
+        
+        return tasks
 
-            # Special handling for Sherlock variations
+    async def run_all_tools(
+        self, 
+        target: str, 
+        target_type: str, 
+        domain: str = None, 
+        email: str = None, 
+        phone: str = None,
+        file: str = None,
+        stealth_mode: bool = False,
+        username_variations: List[str] = None,
+        max_workers: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Run all applicable tools in parallel using ThreadPoolExecutor.
+        This is the default behavior for maximum speed.
+        
+        Args:
+            target: Primary target identifier
+            target_type: 'individual' or 'company'
+            domain: Domain for company tools
+            email: Email for email-based tools
+            phone: Phone for PhoneInfoga
+            file: File path for Exiftool
+            stealth_mode: Skip tools that make direct contact
+            username_variations: List of username variations for Sherlock
+            max_workers: Maximum parallel workers (default: 5)
+        
+        Returns:
+            Aggregated results from all tools
+        """
+        results = {
+            "target": target,
+            "target_type": target_type,
+            "tool_results": {}
+        }
+        
+        tool_config = {"stealth_mode": stealth_mode}
+        
+        # Prepare task list
+        tasks_to_run = self._prepare_tool_tasks(
+            target, target_type, domain, email, phone, file
+        )
+        
+        # Handle Sherlock variations separately (sequential within Sherlock)
+        sherlock_task = None
+        other_tasks = []
+        for tool_name, exec_target in tasks_to_run:
             if tool_name == "sherlock" and username_variations:
-                self._run_sherlock_with_variations(exec_target, tool_config, username_variations, results)
+                sherlock_task = (tool_name, exec_target)
             else:
-                # Standard execution
-                results["tool_results"][tool_name] = self._run_tool(tool_name, exec_target, tool_config)
-
+                other_tasks.append((tool_name, exec_target))
+        
+        # Run tools in parallel using ThreadPoolExecutor
+        loop = asyncio.get_event_loop()
+        
+        logger.info(f"Running {len(other_tasks)} tools in parallel (max_workers={max_workers})...")
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            futures = {
+                loop.run_in_executor(
+                    executor, self._run_tool, tool_name, exec_target, tool_config
+                ): tool_name
+                for tool_name, exec_target in other_tasks
+            }
+            
+            # Collect results as they complete
+            for future in asyncio.as_completed(futures.keys()):
+                tool_name = futures[future]
+                try:
+                    result = await future
+                    results["tool_results"][tool_name] = result
+                    logger.info(f"✓ {tool_name} completed")
+                except Exception as e:
+                    logger.error(f"✗ {tool_name} failed: {e}")
+                    results["tool_results"][tool_name] = {"error": str(e)}
+        
+        # Handle Sherlock with variations (runs sequentially for variations)
+        if sherlock_task:
+            tool_name, exec_target = sherlock_task
+            self._run_sherlock_with_variations(exec_target, tool_config, username_variations, results)
+        
         return results
 
     def _run_sherlock_with_variations(self, target: str, config: Dict[str, Any], variations: List[str], results: Dict[str, Any]):

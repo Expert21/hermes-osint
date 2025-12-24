@@ -8,7 +8,6 @@ from src.core.config import load_config
 from src.core.config_manager import ConfigManager
 from src.core.progress_tracker import get_progress_tracker
 from src.core.deduplication import deduplicate_and_correlate
-from src.core.async_request_manager import AsyncRequestManager
 from src.core.proxy_manager import ProxyManager
 from src.core.secrets_manager import SecretsManager
 from src.core.task_manager import TaskManager, TaskPriority
@@ -22,6 +21,9 @@ from src.core.input_validator import InputValidator
 # Priority 2 & 3 imports
 from src.modules.username_generator import generate_username_variations
 from src.core.cache_manager import get_cache_manager
+
+# LLM Analysis (optional)
+from src.analysis import LLMAnalyzer
 
 
 async def main_async():
@@ -56,6 +58,10 @@ async def main_async():
     parser.add_argument("--no-progress", action="store_true", help="Disable progress indicators")
     parser.add_argument("--no-dedup", action="store_true", help="Disable deduplication")
     parser.add_argument("--workers", type=int, default=10, help="Number of concurrent workers (default: 10)")
+    
+    # LLM Analysis
+    parser.add_argument("--analyze", action="store_true", help="Enable AI-powered analysis of results (requires Ollama)")
+    parser.add_argument("--model", default="llama3.2", help="Ollama model for analysis (default: llama3.2)")
     
     # Priority 2: Username Variations
     parser.add_argument("--variations", action="store_true", help="Try username variations on social media")
@@ -355,10 +361,7 @@ async def main_async():
         "tool_results": {}
     }
     
-    
-    # Initialize Async Request Manager with Proxy Manager
-    request_manager = AsyncRequestManager(proxy_manager=proxy_manager)
-    
+
     # Auto-detect resources
     ResourceLimiter.auto_detect_resources()
     
@@ -383,11 +386,11 @@ async def main_async():
             logger.info(f"Generated {len(username_variations)} variations.")
 
         # Run External Tools (via WorkflowManager)
-        # This runs tools like Sherlock, TheHarvester, etc. based on target type
-        logger.info(f"Running external tools in {args.mode} mode...")
+        # This runs tools in parallel using ThreadPoolExecutor
+        logger.info(f"Running external tools in {args.mode} mode (parallel)...")
         
-        # Pass stealth mode and variations
-        tool_results = workflow_manager.run_all_tools(
+        # Pass stealth mode, variations, and max workers from CLI
+        tool_results = await workflow_manager.run_all_tools(
             target=args.target,
             target_type=args.type,
             domain=args.domain,
@@ -395,14 +398,14 @@ async def main_async():
             phone=args.phone,
             file=args.file,
             stealth_mode=args.stealth,
-            username_variations=username_variations
+            username_variations=username_variations,
+            max_workers=args.workers
         )
         results['tool_results'] = tool_results.get('tool_results', {})
         
     finally:
         # Cleanup
         await task_manager.stop()
-        await request_manager.close()
 
     # Deduplication (Sync)
     if not args.no_dedup and config_dict.get('features', {}).get('deduplication', True):
@@ -458,6 +461,54 @@ async def main_async():
             results['statistics'] = processed.get('statistics', {})
         except Exception as e:
             logger.error(f"Deduplication failed: {e}")
+
+    # LLM Analysis (optional)
+    if args.analyze:
+        logger.info("\n[AI Analysis] Analyzing findings with Ollama...")
+        try:
+            from src.analysis.ollama_client import OllamaConfig
+            from src.core.entities import ToolResult as TR, Entity as E
+            
+            # Convert dict results back to ToolResult objects
+            tool_result_objects = {}
+            for tool_name, result_dict in results.get('tool_results', {}).items():
+                if isinstance(result_dict, dict) and 'entities' in result_dict:
+                    entities = [
+                        E(
+                            type=e.get('type', 'unknown'),
+                            value=e.get('value', ''),
+                            source=e.get('source', tool_name),
+                            confidence=e.get('confidence', 1.0),
+                            metadata=e.get('metadata', {})
+                        )
+                        for e in result_dict.get('entities', [])
+                    ]
+                    tool_result_objects[tool_name] = TR(
+                        tool=tool_name,
+                        entities=entities,
+                        error=result_dict.get('error')
+                    )
+            
+            config = OllamaConfig(model=args.model)
+            analyzer = LLMAnalyzer(config=config)
+            analysis = await analyzer.analyze(
+                tool_result_objects,
+                target=args.target,
+                include_patterns=True,
+                include_priorities=True
+            )
+            
+            if analysis.available:
+                results['ai_analysis'] = analysis.to_dict()
+                logger.info("✓ AI analysis complete")
+                if analysis.summary:
+                    logger.info("\n--- AI Summary ---")
+                    logger.info(analysis.summary)
+            else:
+                logger.warning("Ollama not available - skipping AI analysis")
+                logger.info("Install Ollama: https://ollama.ai/download")
+        except Exception as e:
+            logger.error(f"AI analysis failed: {e}")
 
     # Generate Report (Sync)
     logger.info("\n" + "=" * 60)
