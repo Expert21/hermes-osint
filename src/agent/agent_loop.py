@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 from src.analysis.ollama_client import OllamaClient, OllamaConfig
 from src.agent.tool_executor import ToolExecutor, ToolCallResult
+from src.agent.context_manager import ContextManager, ContextStats
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +122,7 @@ class AgentLoop:
         self.model = model
         self.messages: List[AgentMessage] = []
         self.system_prompt = SYSTEM_PROMPT
+        self.context_manager = ContextManager()
         
     async def is_available(self) -> bool:
         """Check if the agent can run (Ollama available)."""
@@ -282,3 +284,26 @@ class AgentLoop:
         for msg in self.messages:
             total += len(msg.content)
         return total
+    
+    def get_context_stats(self) -> ContextStats:
+        """
+        Get detailed context statistics.
+        
+        Returns:
+            ContextStats with usage information
+        """
+        return self.context_manager.get_stats(self.messages)
+    
+    async def compress_if_needed(self) -> bool:
+        """
+        Compress context if needed.
+        
+        Returns:
+            True if compression was performed
+        """
+        if self.context_manager.should_summarize(self.messages):
+            self.messages = await self.context_manager.maybe_compress(
+                self.messages, self.client
+            )
+            return True
+        return False

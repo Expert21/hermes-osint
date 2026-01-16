@@ -23,6 +23,7 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.formatted_text import HTML, FormattedText
 
 from src.agent.agent_loop import AgentLoop
+from src.agent.session_store import SessionStore
 from src.agent.styles import (
     Colors,
     HERMES_STYLE,
@@ -62,6 +63,7 @@ class HermesTUI:
         self.model = model
         self.execution_mode = execution_mode
         self.agent: Optional[AgentLoop] = None
+        self.session_store = SessionStore()
         self.running = False
         self.current_tool: Optional[str] = None
         
@@ -87,16 +89,24 @@ class HermesTUI:
         else:
             status = f'<status-error>●</status-error>'
         
-        # Context size
-        context_chars = self.agent.get_context_size() if self.agent else 0
-        context_kb = context_chars / 1024
+        # Context percentage
+        if self.agent:
+            stats = self.agent.get_context_stats()
+            pct = int(stats.percentage_used * 100)
+            if pct >= 75:
+                ctx_color = 'status-warn'
+            else:
+                ctx_color = 'status-value'
+            context_str = f'<{ctx_color}>{pct}%</{ctx_color}>'
+        else:
+            context_str = '<status-value>0%</status-value>'
         
         # Current activity
         activity = f'<tool-name>{self.current_tool}</tool-name>' if self.current_tool else 'idle'
         
         return HTML(
             f' {status} <status-key>Model:</status-key> <status-value>{self.model}</status-value> '
-            f'│ <status-key>Context:</status-key> <status-value>{context_kb:.1f}kb</status-value> '
+            f'│ <status-key>Context:</status-key> {context_str} '
             f'│ <status-key>Mode:</status-key> <status-value>{self.execution_mode}</status-value> '
             f'│ {activity}'
         )
@@ -133,7 +143,9 @@ class HermesTUI:
         Returns:
             True to continue, False to exit
         """
-        cmd = command.lower().strip()
+        cmd_parts = command.lower().strip().split()
+        cmd = cmd_parts[0]
+        args = cmd_parts[1:] if len(cmd_parts) > 1 else []
         
         if cmd in ('/exit', '/quit', '/q'):
             print(f"\n{Colors.CYAN}Goodbye!{Colors.RESET}")
@@ -152,6 +164,15 @@ class HermesTUI:
         
         elif cmd == '/tools':
             self.show_tools()
+        
+        elif cmd == '/save':
+            await self.save_session(args[0] if args else None)
+        
+        elif cmd == '/load':
+            await self.load_session(args[0] if args else None)
+        
+        elif cmd == '/sessions':
+            self.list_sessions()
         
         else:
             print(format_error(f"Unknown command: {command}"))
@@ -196,6 +217,80 @@ class HermesTUI:
                 print(f"  {status} {name}")
         else:
             print(f"  {Colors.DIM}No tools loaded{Colors.RESET}")
+        
+        print()
+    
+    async def save_session(self, name: Optional[str] = None):
+        """Save current session."""
+        if not self.agent or not self.agent.messages:
+            print(format_error("No conversation to save"))
+            return
+        
+        # Generate name if not provided
+        if not name:
+            from datetime import datetime
+            name = f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        metadata = {
+            "model": self.model,
+            "execution_mode": self.execution_mode,
+        }
+        
+        if self.session_store.save(name, self.agent.messages, metadata):
+            print(f"{Colors.GREEN}✓ Session saved as '{name}'{Colors.RESET}")
+        else:
+            print(format_error("Failed to save session"))
+    
+    async def load_session(self, name: Optional[str] = None):
+        """Load a saved session."""
+        if not name:
+            # Show available sessions
+            self.list_sessions()
+            print(f"{Colors.DIM}Usage: /load <session_name>{Colors.RESET}")
+            return
+        
+        data = self.session_store.load(name)
+        if not data:
+            print(format_error(f"Session '{name}' not found"))
+            return
+        
+        if not self.agent:
+            print(format_error("Agent not initialized"))
+            return
+        
+        # Clear current and load saved messages
+        self.agent.clear_history()
+        
+        from src.agent.agent_loop import AgentMessage
+        for msg_dict in data.get("messages", []):
+            self.agent.messages.append(AgentMessage(
+                role=msg_dict.get("role", "user"),
+                content=msg_dict.get("content", ""),
+                name=msg_dict.get("name"),
+            ))
+        
+        msg_count = len(self.agent.messages)
+        print(f"{Colors.GREEN}✓ Loaded session '{name}' ({msg_count} messages){Colors.RESET}")
+    
+    def list_sessions(self):
+        """List saved sessions."""
+        sessions = self.session_store.list_sessions()
+        
+        if not sessions:
+            print(f"\n{Colors.DIM}No saved sessions{Colors.RESET}\n")
+            return
+        
+        print(f"\n{Colors.BRIGHT_CYAN}Saved Sessions{Colors.RESET}")
+        print("─" * 40)
+        
+        for s in sessions[:10]:  # Limit to 10
+            name = s.get("session_id", "unknown")
+            count = s.get("message_count", 0)
+            saved = s.get("saved_at", "")[:16]  # Date only
+            print(f"  {Colors.GREEN}•{Colors.RESET} {name} ({count} msgs) - {saved}")
+        
+        if len(sessions) > 10:
+            print(f"  {Colors.DIM}... and {len(sessions) - 10} more{Colors.RESET}")
         
         print()
     
