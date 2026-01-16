@@ -127,57 +127,39 @@ class PluginLoader:
                     logger.warning(f"Could not register image for {manifest.name}: {e}")
 
 
-        # 4. Import Module
-        # We need to add the parent dir to sys.path or use importlib
-        # Best way: use importlib to load from path
+        # 4. Import Module using safe file-based loading
+        # SECURITY: Use spec_from_file_location to avoid sys.path pollution
+        # This prevents module shadowing attacks (e.g., malicious logging.py)
         
-        # Construct module name
-        module_name = f"src.plugins.{plugin_path.name}.adapter"
-        # If it's a user plugin, it might not be in src.plugins
+        adapter_file = plugin_path / "adapter.py"
+        if not adapter_file.exists():
+            logger.error(f"Adapter file not found: {adapter_file}")
+            return None
         
         try:
-            # If it's in src/plugins, we can just import it if we set up __init__.py correctly
-            # But we want to be dynamic.
+            # Generate unique module name to avoid conflicts
+            module_name = f"hermes_plugin_{plugin_path.name}_adapter"
             
-            # Let's try to import the module specified in adapter_class
-            # adapter_class format: "module.path.ClassName"
-            # e.g. "sherlock.adapter.SherlockAdapter" -> relative to plugin root?
-            # Or "src.plugins.sherlock.adapter.SherlockAdapter"?
+            # Load module directly from file path (no sys.path modification)
+            spec = importlib.util.spec_from_file_location(
+                module_name,
+                str(adapter_file)
+            )
             
-            # Let's assume the manifest provides a relative path or we infer it.
-            # For built-ins: "src.plugins.sherlock.adapter.SherlockAdapter"
-            # For user plugins: We might need to add the folder to sys.path
+            if spec is None or spec.loader is None:
+                logger.error(f"Failed to create module spec for {adapter_file}")
+                return None
             
-            # Check if this is a user plugin (in ~/.hermes/plugins/)
-            user_plugins_dir = Path.home() / ".hermes" / "plugins"
-            is_user_plugin = str(plugin_path).startswith(str(user_plugins_dir))
+            module = importlib.util.module_from_spec(spec)
             
-            if is_user_plugin:
-                # User plugin - add to path and import relatively
-                if str(plugin_path.parent) not in sys.path:
-                    sys.path.append(str(plugin_path.parent))
-                
-                # Now we can import "plugin_dir_name.adapter"
-                module_path = f"{plugin_path.name}.adapter"
-            else:
-                # Built-in plugin (in src/plugins/)
-                module_path = f"src.plugins.{plugin_path.name}.adapter"
-
-            module = importlib.import_module(module_path)
+            # Execute the module
+            spec.loader.exec_module(module)
             
             # 5. Instantiate Class
             class_name = manifest.adapter_class.split(".")[-1]
             adapter_cls = getattr(module, class_name)
             
-            # Inject dependencies
-            # Check constructor signature or just pass standard args
             # Standard ToolAdapter expects (execution_strategy)
-            
-            # If it requires credentials, we might need to pass them or ensure SecretsManager is used
-            # The plan says "Injects SecretsManager access if plugin requires credentials"
-            # But SecretsManager is a singleton/global usually, or we can pass it.
-            # Existing adapters take `execution_strategy`.
-            
             adapter_instance = adapter_cls(self.execution_strategy)
             
             return adapter_instance
@@ -187,6 +169,9 @@ class PluginLoader:
             return None
         except AttributeError as e:
             logger.error(f"Adapter class not found for {manifest.name}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error loading plugin {manifest.name}: {e}")
             return None
 
     def _find_plugin_path(self, plugin_name: str) -> Optional[Path]:

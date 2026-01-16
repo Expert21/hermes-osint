@@ -140,11 +140,10 @@ class InputValidator:
                 if path.suffix not in allowed_extensions:
                     raise ValueError(f"File extension must be one of: {', '.join(allowed_extensions)}")
             
-            # Block system directories (common dangerous paths)
+            # Block system directories (Linux only - Windows users should use Docker)
             dangerous_dirs = [
                 '/etc', '/sys', '/proc', '/dev', '/boot', '/root',
-                'C:\\Windows', 'C:\\Program Files', 'C:\\Program Files (x86)',
-                '/usr/bin', '/bin', '/sbin', '/usr/sbin'
+                '/usr/bin', '/bin', '/sbin', '/usr/sbin', '/var/run'
             ]
             
             path_str = str(path)

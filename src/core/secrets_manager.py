@@ -200,22 +200,6 @@ class SecretsManager:
             key = Fernet.generate_key()
             self.key_file.touch(mode=0o600)
             
-            # SECURITY: Windows-specific permission hardening
-            # On Windows, chmod 0o600 doesn't work properly, so use icacls
-            import platform
-            if platform.system() == 'Windows':
-                try:
-                    import subprocess
-                    # Remove all inherited permissions and grant only current user full control
-                    subprocess.run([
-                        'icacls', str(self.key_file), 
-                        '/inheritance:r',  # Remove inheritance
-                        '/grant:r', f'{os.getenv("USERNAME")}:(F)'  # Grant full control to current user only
-                    ], check=True, capture_output=True)
-                    logger.debug(f"Set Windows ACLs on {self.key_file}")
-                except Exception as e:
-                    logger.warning(f"Failed to set Windows ACLs on key file: {e}")
-            
             with open(self.key_file, 'wb') as f:
                 f.write(key)
         
