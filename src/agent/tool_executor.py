@@ -37,24 +37,35 @@ class ToolCallResult:
         Format result for agent context window.
         
         Returns entities as structured text the agent can reason about.
+        Uses clear indicators so the agent knows what's grounded data.
         """
         if not self.success:
-            return f"Tool '{self.tool_name}' failed: {self.error}"
+            return f"⚠️ TOOL FAILED: '{self.tool_name}' - {self.error}"
         
         if not self.entities:
-            return f"Tool '{self.tool_name}' completed but found no results."
+            return f"✓ TOOL COMPLETED: '{self.tool_name}' - No results found for this target."
         
-        lines = [f"Results from {self.tool_name} ({len(self.entities)} findings):"]
-        for entity in self.entities[:20]:  # Limit to prevent context overflow
+        lines = [f"✓ TOOL COMPLETED: '{self.tool_name}' found {len(self.entities)} results:"]
+        
+        for entity in self.entities[:25]:  # Limit to prevent context overflow
             meta = entity.metadata
             if entity.type == "account":
-                platform = meta.get("service", "unknown")
-                lines.append(f"• [{platform}] {entity.value}")
+                platform = meta.get("service", meta.get("platform", "unknown"))
+                lines.append(f"  • [{platform}] {entity.value}")
+            elif entity.type == "email":
+                lines.append(f"  • [email] {entity.value}")
+            elif entity.type == "domain":
+                source = meta.get("source", "")
+                lines.append(f"  • [subdomain] {entity.value}" + (f" (via {source})" if source else ""))
+            elif entity.type == "breach":
+                lines.append(f"  • [breach] {entity.value}")
+            elif entity.type == "phone_info":
+                lines.append(f"  • [phone] {entity.metadata}")
             else:
-                lines.append(f"• [{entity.type}] {entity.value}")
+                lines.append(f"  • [{entity.type}] {entity.value}")
         
-        if len(self.entities) > 20:
-            lines.append(f"... and {len(self.entities) - 20} more results")
+        if len(self.entities) > 25:
+            lines.append(f"  ... and {len(self.entities) - 25} more results (truncated)")
         
         return "\n".join(lines)
 
@@ -200,6 +211,19 @@ class ToolExecutor:
                 tool_name=tool_name,
                 entities=[],
                 error=f"Tool '{tool_name}' is not available in {self.execution_mode} mode"
+            )
+        
+        # SECURITY: Centralized stealth mode enforcement
+        # This check is performed here (not in adapters) to guarantee compliance
+        # for all tools, regardless of adapter implementation
+        if config.get("stealth_mode") and not tool_def.stealth_compatible:
+            return ToolCallResult(
+                success=False,
+                tool_name=tool_name,
+                entities=[],
+                error=f"Tool '{tool_name}' is not compatible with stealth mode. "
+                      f"It makes direct contact with external services. "
+                      f"Stealth-compatible alternatives: theharvester, subfinder, h8mail"
             )
         
         # Extract target based on tool
