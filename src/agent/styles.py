@@ -117,14 +117,24 @@ def print_help():
     """Print help message."""
     help_text = f"""
 {Colors.BRIGHT_CYAN}Commands:{Colors.RESET}
-  {Colors.MAGENTA}/help{Colors.RESET}     - Show this help message
-  {Colors.MAGENTA}/status{Colors.RESET}   - Show system status
-  {Colors.MAGENTA}/clear{Colors.RESET}    - Clear conversation history
-  {Colors.MAGENTA}/exit{Colors.RESET}     - Exit Hermes
+  {Colors.MAGENTA}/help{Colors.RESET}         - Show this help message
+  {Colors.MAGENTA}/status{Colors.RESET}       - Show system status
+  {Colors.MAGENTA}/tools{Colors.RESET}        - List available tools
+  {Colors.MAGENTA}/clear{Colors.RESET}        - Clear conversation history
+  
+{Colors.BRIGHT_CYAN}Sessions:{Colors.RESET}
+  {Colors.MAGENTA}/save{Colors.RESET} [name]  - Save current session
+  {Colors.MAGENTA}/load{Colors.RESET} [name]  - Load a saved session  
+  {Colors.MAGENTA}/sessions{Colors.RESET}     - List saved sessions
+
+{Colors.BRIGHT_CYAN}Export:{Colors.RESET}
+  {Colors.MAGENTA}/export{Colors.RESET} FILE  - Export report (md/pdf/html/csv/stix)
+
+  {Colors.MAGENTA}/exit{Colors.RESET}         - Exit Hermes
 
 {Colors.BRIGHT_CYAN}Tips:{Colors.RESET}
   • Just type naturally to investigate targets
-  • Use {Colors.GREEN}Ctrl+C{Colors.RESET} to interrupt a running tool
-  • Press {Colors.GREEN}↑/↓{Colors.RESET} to navigate command history
+  • Use {Colors.GREEN}Ctrl+C{Colors.RESET} to interrupt
+  • Press {Colors.GREEN}↑/↓{Colors.RESET} for history
 """
     print(help_text)

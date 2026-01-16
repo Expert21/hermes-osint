@@ -174,6 +174,9 @@ class HermesTUI:
         elif cmd == '/sessions':
             self.list_sessions()
         
+        elif cmd == '/export':
+            await self.export_investigation(args[0] if args else None)
+        
         else:
             print(format_error(f"Unknown command: {command}"))
             print(f"{Colors.DIM}Type /help for available commands{Colors.RESET}")
@@ -293,6 +296,26 @@ class HermesTUI:
             print(f"  {Colors.DIM}... and {len(sessions) - 10} more{Colors.RESET}")
         
         print()
+    
+    async def export_investigation(self, filename: Optional[str] = None):
+        """Export current investigation to file."""
+        if not self.agent or not self.agent.messages:
+            print(format_error("No conversation to export"))
+            return
+        
+        if not filename:
+            print(format_error("Please specify a filename"))
+            print(f"{Colors.DIM}Usage: /export report.md{Colors.RESET}")
+            print(f"{Colors.DIM}Formats: .md, .pdf, .html, .csv, .stix{Colors.RESET}")
+            return
+        
+        from src.agent.exporter import AgentExporter
+        
+        exporter = AgentExporter()
+        if exporter.export(self.agent.messages, filename):
+            print(f"{Colors.GREEN}✓ Exported to {filename}{Colors.RESET}")
+        else:
+            print(format_error(f"Failed to export to {filename}"))
     
     async def process_input(self, user_input: str):
         """

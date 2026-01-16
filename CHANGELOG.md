@@ -1,6 +1,6 @@
 <!--
-Hermes OSINT - V2.0 Alpha
-This project is currently in an alpha state.
+Hermes OSINT - V3.0
+The Agentic OSINT Analyst
 -->
 
 # Changelog
@@ -9,6 +9,107 @@ All notable changes to Hermes OSINT Tool will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [3.0.0] - 2026-01-16
+
+### 🧠 MAJOR RELEASE: The Agentic OSINT Analyst
+
+Complete transformation from pipeline-based tool to conversational AI-driven investigation platform.
+
+---
+
+### Added (Sessions 4-6) - 2026-01-16
+
+#### Session 4: Grounding & Safety Layer
+- **Centralized Stealth Enforcement** in `tool_executor.py`
+  - Blocks non-stealth tools when stealth mode enabled
+  - Stealth-compatible: theharvester, subfinder, h8mail
+  - Non-stealth: sherlock, holehe, phoneinfoga
+- **Enhanced System Prompt** with citation requirements
+  - LLM must cite source tool for all findings
+  - "Do not speculate" grounding rules
+- **Improved Entity Formatting** with status indicators
+  - `✓ TOOL COMPLETED` / `⚠️ TOOL FAILED` prefixes
+
+#### Session 5: Context Management
+- **`context_manager.py`** - Rolling context summaries
+  - Tracks context usage (24k char max for 8B models)
+  - Auto-summarizes at 75% capacity
+  - Prevents token overflow in long investigations
+- **`session_store.py`** - JSON-based session persistence
+  - Save/load conversations to `~/.hermes/sessions/`
+  - TUI commands: `/save`, `/load`, `/sessions`
+- **Context percentage** in TUI status bar
+
+#### Session 6: CLI Fallback & Polish
+- **`cli.py`** - Unified entry point with mode detection
+  - TUI mode (default): Requires Ollama
+  - Headless mode: `--headless --query "..."` for scripting
+  - Legacy mode: `hermes sherlock <user>` (no LLM needed)
+- **`exporter.py`** - Agent-to-report bridge
+  - Supports all v2.1 formats: MD, PDF, HTML, CSV, STIX
+  - TUI command: `/export report.{md,pdf,html,csv,stix}`
+- **Graceful fallbacks**
+  - Clear error if Ollama not available
+  - Legacy commands work without LLM
+
+---
+
+### Added (Sessions 1-3) - 2026-01-15
+
+#### Session 1: Core Agent Loop Foundation
+- **`src/agent/` module** - New agentic core package
+- **`agent_loop.py`** - ReAct (Reason + Act) pattern implementation
+  - Think → Act → Observe cycle
+  - Ollama function calling integration
+  - Conversation state management
+- **`tool_registry.py`** - Tool schema definitions
+  - JSON Schema for LLM function calling
+  - `ToolDefinition` dataclass with metadata
+- **`tool_executor.py`** - Adapter bridge
+  - Validates inputs via `InputValidator`
+  - Formats entity results for agent context
+  - Supports native/docker/hybrid execution
+
+#### Session 2: TUI Shell
+- **`tui.py`** - Conversational terminal interface
+  - `prompt_toolkit` async REPL
+  - Persistent history (`~/.hermes_history`)
+  - Dynamic status bar (model, context, mode)
+  - Slash commands: `/help`, `/status`, `/tools`, `/clear`, `/exit`
+- **`styles.py`** - Pentesting-themed colors
+  - Green/cyan/orange accent scheme
+  - ANSI color helpers
+
+#### Session 3: Tool Expansion
+- **6 tools registered** in agent system
+  | Tool | Input Type | Stealth |
+  |------|------------|---------|
+  | sherlock | username | ❌ |
+  | theharvester | domain | ✅ |
+  | h8mail | email | ✅ |
+  | holehe | email | ❌ |
+  | phoneinfoga | phone | ❌ |
+  | subfinder | domain | ✅ |
+- All adapters loaded dynamically in `ToolExecutor`
+- Target extraction/validation per tool type
+
+---
+
+### Changed
+- Entry point now `src/agent/cli.py` instead of `main.py`
+- LLM-first architecture with fallback to raw tools
+- Help text updated with all new commands
+
+### Architecture
+```
+User Input → CLI (cli.py)
+                ├── TUI Mode → AgentLoop → Ollama → ToolExecutor → Adapters
+                ├── Headless → AgentLoop → Single Query
+                └── Legacy → ToolExecutor Direct (no LLM)
+```
 
 ---
 
