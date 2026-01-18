@@ -1,6 +1,9 @@
 
 import os
+import getpass
+import base64
 from pathlib import Path
+from datetime import datetime
 import logging
 import json
 import hmac
@@ -17,12 +20,17 @@ except ImportError:
 
 try:
     from cryptography.fernet import Fernet
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
     CRYPTO_AVAILABLE = True
 except ImportError:
     CRYPTO_AVAILABLE = False
     logging.warning("cryptography module not available - file-based encryption disabled")
 
 logger = logging.getLogger("OSINT_Tool")
+
+# SECURITY: PBKDF2 iteration count (OWASP 2024 recommendation for SHA-256)
+PBKDF2_ITERATIONS = 480000
 
 
 class EnvSyncError(Exception):
@@ -55,7 +63,9 @@ class SecretsManager:
 
         self.hmac_salt = self._get_or_create_hmac_salt()
         self._cipher = None
+        self._password = None  # Cached password for session
         self._env_hash_key = "_ENV_HASH"
+        self.audit_log = self.secrets_dir / "audit.log"
         
         # Check if we should migrate legacy secrets
         if KEYRING_AVAILABLE and self.creds_file.exists():
@@ -185,26 +195,105 @@ class SecretsManager:
 
     # --- File-Based Fallback Methods (Private) ---
 
-    def _get_cipher(self):
-        """Get or create Fernet cipher for encryption."""
+    def _audit_log(self, action: str, key_name: str, success: bool):
+        """Log credential access for audit purposes."""
+        try:
+            timestamp = datetime.now().isoformat()
+            status = "SUCCESS" if success else "FAILURE"
+            entry = f"{timestamp} | {action} | {key_name} | {status}\n"
+            with open(self.audit_log, 'a') as f:
+                f.write(entry)
+        except Exception as e:
+            logger.debug(f"Failed to write audit log: {e}")
+
+    def _get_cipher(self, password: Optional[str] = None):
+        """
+        Get Fernet cipher with password-derived key.
+        
+        SECURITY: Uses PBKDF2 with 480,000 iterations to derive encryption key
+        from user password. No plaintext key is stored on disk.
+        """
         if not CRYPTO_AVAILABLE:
             return None
         
-        if self._cipher:
+        # Use cached cipher if password matches
+        if self._cipher and password is None and self._password is not None:
             return self._cipher
         
-        if self.key_file.exists():
-            with open(self.key_file, 'rb') as f:
-                key = f.read()
-        else:
-            key = Fernet.generate_key()
-            self.key_file.touch(mode=0o600)
-            
-            with open(self.key_file, 'wb') as f:
-                f.write(key)
+        # Get password
+        if password is None:
+            if self._password:
+                password = self._password
+            else:
+                password = getpass.getpass("Encryption password: ")
+                self._password = password
         
+        # Get or create salt (not secret, but unique per installation)
+        salt_file = self.secrets_dir / '.key_salt'
+        if salt_file.exists():
+            with open(salt_file, 'rb') as f:
+                salt = f.read()
+        else:
+            salt = os.urandom(32)
+            salt_file.touch(mode=0o600)
+            with open(salt_file, 'wb') as f:
+                f.write(salt)
+        
+        # Derive key using PBKDF2
+        kdf = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=salt,
+            iterations=PBKDF2_ITERATIONS,
+        )
+        key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
         self._cipher = Fernet(key)
         return self._cipher
+    
+    def set_password(self, password: str):
+        """Set the encryption password for this session (avoids interactive prompt)."""
+        self._password = password
+        self._cipher = None  # Invalidate cached cipher
+    
+    def rotate_encryption(self, old_password: str, new_password: str) -> bool:
+        """
+        Rotate encryption by re-encrypting all credentials with a new password.
+        
+        Returns:
+            True if rotation successful
+        """
+        try:
+            # Read with old password
+            self._password = old_password
+            self._cipher = None
+            credentials = self._read_all_encrypted_file()
+            
+            if not credentials:
+                logger.warning("No credentials to rotate")
+                return True
+            
+            # Write with new password
+            self._password = new_password
+            self._cipher = None
+            
+            # Delete old salt to force new key derivation
+            salt_file = self.secrets_dir / '.key_salt'
+            if salt_file.exists():
+                salt_file.unlink()
+            
+            # Re-encrypt all credentials
+            for key, value in credentials.items():
+                if key != self._env_hash_key:
+                    self._write_encrypted_file(key, value)
+            
+            self._audit_log("ROTATE", "ALL", True)
+            logger.info("✓ Encryption rotated successfully")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Encryption rotation failed: {e}")
+            self._audit_log("ROTATE", "ALL", False)
+            return False
     
     def _get_or_create_hmac_salt(self) -> bytes:
         """Get existing HMAC salt or create new one."""

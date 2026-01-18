@@ -13,6 +13,7 @@ The agent loop:
 
 import logging
 import json
+import re
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 
@@ -21,6 +22,31 @@ from src.agent.tool_executor import ToolExecutor, ToolCallResult
 from src.agent.context_manager import ContextManager, ContextStats
 
 logger = logging.getLogger(__name__)
+
+
+# SECURITY: Prompt injection detection patterns
+# These patterns detect common LLM jailbreak/injection attempts
+PROMPT_INJECTION_PATTERNS = [
+    r"ignore\s+(all\s+)?previous\s+instructions",
+    r"disregard\s+(all\s+)?previous",
+    r"you\s+are\s+now\s+",
+    r"forget\s+(everything|your|all)",
+    r"new\s+instructions?\s*:",
+    r"system\s*:\s*",
+    r"<\|.*?\|>",  # Special token markers
+    r"\[INST\]",   # Llama instruction markers
+    r"<<SYS>>",    # Llama system markers
+    r"\[SYSTEM\]",
+    r"```system",
+    r"override\s+(your\s+)?instructions",
+    r"act\s+as\s+if\s+you\s+have\s+no\s+restrictions",
+    r"pretend\s+(you\s+are|to\s+be)\s+",
+    r"jailbreak",
+    r"DAN\s*mode",  # "Do Anything Now" jailbreak
+]
+
+# Maximum input length to prevent context overflow attacks
+MAX_INPUT_LENGTH = 4000
 
 
 # System prompt that defines the agent's behavior
@@ -142,6 +168,17 @@ class AgentLoop:
             Agent's response string
         """
         config = config or {}
+        
+        # SECURITY: Validate input length to prevent context overflow attacks
+        if len(user_input) > MAX_INPUT_LENGTH:
+            logger.warning(f"Input rejected: length {len(user_input)} exceeds max {MAX_INPUT_LENGTH}")
+            return f"Input too long. Please keep requests under {MAX_INPUT_LENGTH} characters."
+        
+        # SECURITY: Detect prompt injection patterns
+        for pattern in PROMPT_INJECTION_PATTERNS:
+            if re.search(pattern, user_input, re.IGNORECASE):
+                logger.warning(f"Prompt injection attempt blocked. Pattern matched: {pattern}")
+                return "I couldn't process that request. Please rephrase your question."
         
         # Add user message to history
         self.messages.append(AgentMessage(role="user", content=user_input))

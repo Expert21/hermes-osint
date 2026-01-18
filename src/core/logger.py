@@ -46,6 +46,15 @@ class ColoredFormatter(logging.Formatter):
         
         # PII: IP Addresses (IPv4)
         (re.compile(r'\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b'), r'***IP***'),
+        
+        # PII: US Phone Numbers (various formats)
+        (re.compile(r'\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b'), r'***PHONE***'),
+        
+        # PII: Social Security Numbers
+        (re.compile(r'\b\d{3}-\d{2}-\d{4}\b'), r'***SSN***'),
+        
+        # PII: Credit Card Numbers (basic pattern)
+        (re.compile(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'), r'***CC***'),
     ]
 
     def format(self, record):

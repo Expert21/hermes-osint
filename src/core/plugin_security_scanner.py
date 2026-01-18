@@ -101,6 +101,39 @@ class SecurityVisitor(ast.NodeVisitor):
                     message=f"Use of {node.func.id}() is forbidden."
                 ))
             
+            # SECURITY: Detect __import__ bypass
+            if node.func.id == '__import__':
+                self.errors.append(SecurityViolation(
+                    rule="Dynamic Import",
+                    severity="error",
+                    line_number=node.lineno,
+                    code_snippet=self._get_snippet(node.lineno),
+                    message="Use of __import__() is forbidden. Use standard imports."
+                ))
+            
+            # SECURITY: Detect compile() which can execute arbitrary code
+            if node.func.id == 'compile':
+                self.errors.append(SecurityViolation(
+                    rule="Code Compilation",
+                    severity="error",
+                    line_number=node.lineno,
+                    code_snippet=self._get_snippet(node.lineno),
+                    message="Use of compile() is forbidden."
+                ))
+            
+            # SECURITY: Detect getattr with __import__ (bypass pattern)
+            if node.func.id == 'getattr':
+                for arg in node.args:
+                    if isinstance(arg, ast.Call):
+                        if isinstance(arg.func, ast.Name) and arg.func.id == '__import__':
+                            self.errors.append(SecurityViolation(
+                                rule="Dynamic Import Bypass",
+                                severity="error",
+                                line_number=node.lineno,
+                                code_snippet=self._get_snippet(node.lineno),
+                                message="getattr(__import__(...)) pattern is forbidden."
+                            ))
+            
             # open()
             if node.func.id == 'open':
                 self.warnings.append(SecurityViolation(

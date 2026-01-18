@@ -226,6 +226,19 @@ class ToolExecutor:
                       f"Stealth-compatible alternatives: theharvester, subfinder, h8mail"
             )
         
+        # SECURITY: Validate arguments against tool schema
+        # Prevents LLM (possibly via prompt injection) from passing extra parameters
+        try:
+            self._validate_arguments(tool_def, arguments)
+        except ValueError as e:
+            logger.warning(f"Argument validation failed for {tool_name}: {e}")
+            return ToolCallResult(
+                success=False,
+                tool_name=tool_name,
+                entities=[],
+                error=f"Invalid arguments: {e}"
+            )
+        
         # Extract target based on tool
         try:
             target = self._extract_target(tool_name, arguments)
@@ -316,3 +329,28 @@ class ToolExecutor:
                 return str(arguments[key])
         
         raise ValueError(f"Could not extract target from arguments: {arguments}")
+    
+    def _validate_arguments(self, tool_def: ToolDefinition, arguments: Dict[str, Any]) -> None:
+        """
+        Validate arguments match tool schema.
+        
+        SECURITY: Prevents LLM (possibly via prompt injection) from passing
+        extra parameters that could override configurations.
+        
+        Raises:
+            ValueError: If validation fails
+        """
+        schema = tool_def.parameters
+        expected_props = set(schema.get("properties", {}).keys())
+        provided_keys = set(arguments.keys())
+        
+        # Check for unexpected arguments
+        extra_keys = provided_keys - expected_props
+        if extra_keys:
+            raise ValueError(f"Unexpected arguments: {extra_keys}")
+        
+        # Check required arguments are present
+        required = set(schema.get("required", []))
+        missing = required - provided_keys
+        if missing:
+            raise ValueError(f"Missing required arguments: {missing}")

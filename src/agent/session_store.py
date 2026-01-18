@@ -15,6 +15,15 @@ from dataclasses import asdict
 logger = logging.getLogger(__name__)
 
 
+# SECURITY: Session schema for validation
+SESSION_SCHEMA = {
+    "required_fields": ["session_id", "messages"],
+    "allowed_roles": {"user", "assistant", "tool", "system"},
+    "max_messages": 1000,  # Prevent excessively large sessions
+    "max_content_length": 100000,  # Per-message content limit
+}
+
+
 class SessionStore:
     """
     Persists agent sessions to disk.
@@ -116,11 +125,57 @@ class SessionStore:
         try:
             with open(path) as f:
                 data = json.load(f)
+            
+            # SECURITY: Validate session schema
+            self._validate_session_schema(data)
+            
             logger.info(f"Loaded session '{session_id}' ({data.get('message_count', 0)} messages)")
             return data
+        except ValueError as ve:
+            logger.error(f"Session validation failed for '{session_id}': {ve}")
+            return None
         except Exception as e:
             logger.error(f"Failed to load session: {e}")
             return None
+    
+    def _validate_session_schema(self, data: Dict[str, Any]) -> None:
+        """
+        Validate session data against schema.
+        
+        SECURITY: Prevents malicious session files from injecting
+        content into the agent context.
+        
+        Raises:
+            ValueError: If validation fails
+        """
+        # Check required fields
+        for field in SESSION_SCHEMA["required_fields"]:
+            if field not in data:
+                raise ValueError(f"Missing required field: {field}")
+        
+        # Validate messages is a list
+        messages = data.get("messages", [])
+        if not isinstance(messages, list):
+            raise ValueError("messages must be a list")
+        
+        # Check message count limit
+        if len(messages) > SESSION_SCHEMA["max_messages"]:
+            raise ValueError(f"Too many messages: {len(messages)} exceeds max {SESSION_SCHEMA['max_messages']}")
+        
+        # Validate each message
+        for i, msg in enumerate(messages):
+            if not isinstance(msg, dict):
+                raise ValueError(f"Message {i} must be a dict")
+            
+            # Validate role
+            role = msg.get("role", "")
+            if role not in SESSION_SCHEMA["allowed_roles"]:
+                raise ValueError(f"Invalid role in message {i}: '{role}'")
+            
+            # Validate content length
+            content = msg.get("content", "")
+            if isinstance(content, str) and len(content) > SESSION_SCHEMA["max_content_length"]:
+                raise ValueError(f"Message {i} content too long: {len(content)} chars")
     
     def list_sessions(self) -> List[Dict[str, Any]]:
         """

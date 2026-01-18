@@ -136,6 +136,12 @@ class NativeExecutionStrategy(ExecutionStrategy):
     Executes tools using locally installed binaries.
     """
     
+    # SECURITY: Allowed tool names to prevent command injection
+    ALLOWED_TOOLS = {
+        "sherlock", "theharvester", "holehe", "phoneinfoga",
+        "subfinder", "ghunt", "h8mail", "exiftool"
+    }
+    
     # Installation hints for native tools
     INSTALL_HINTS = {
         "sherlock": "pip install sherlock-project",
@@ -151,7 +157,10 @@ class NativeExecutionStrategy(ExecutionStrategy):
         pass
 
     def is_available(self, tool_name: str) -> bool:
-        """Check if the tool is in the system PATH."""
+        """Check if the tool is in the system PATH and allowed."""
+        if tool_name not in self.ALLOWED_TOOLS:
+            logger.warning(f"Tool '{tool_name}' not in allowed list")
+            return False
         return shutil.which(tool_name) is not None
     
     def _get_install_hint(self, tool_name: str) -> str:
