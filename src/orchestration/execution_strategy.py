@@ -46,6 +46,7 @@ class DockerExecutionStrategy(ExecutionStrategy):
             "sherlock": "sherlock/sherlock",
             "theharvester": "ghcr.io/laramies/theharvester:sha-97e89aa",
             "h8mail": "kh4st3x00/h8mail",
+            "holehe": "ghcr.io/expert21/hermes-holehe",
             "phoneinfoga": "sundowndev/phoneinfoga",
             "subfinder": "projectdiscovery/subfinder",
             "exiftool": "ai2ys/exiftool"

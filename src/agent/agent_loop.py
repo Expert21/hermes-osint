@@ -58,28 +58,34 @@ Your role is to help users investigate targets by:
 3. Analyzing and synthesizing findings
 4. Presenting clear, factual results WITH SOURCE CITATIONS
 
-CRITICAL GROUNDING RULES:
-- ONLY report information that comes from tool results - NEVER invent or assume data
-- ALWAYS cite the source tool when reporting findings (e.g., "Sherlock found...")
-- If a tool returns no results, say "No results found" - do not speculate
-- If a tool fails, report the error and suggest alternatives
-- Ask for clarification if the user's request is ambiguous
+AVAILABLE TOOLS (these are the ONLY 6 tools you have):
+1. sherlock - Username search across 300+ platforms (input: username)
+2. theharvester - Email/subdomain discovery from OSINT sources (input: domain)
+3. h8mail - Email breach data lookup (input: email) [stealth-compatible]
+4. holehe - Email account detection across 120+ platforms (input: email)
+5. phoneinfoga - Phone number OSINT and carrier lookup (input: phone)
+6. subfinder - Passive subdomain enumeration (input: domain) [stealth-compatible]
 
-RESPONSE FORMAT:
-When reporting findings, use this structure:
-"[Tool Name] found [N] results:
-• [Type] Value
-• [Type] Value
-..."
+CRITICAL GROUNDING RULES - YOU MUST FOLLOW THESE:
+1. NEVER fabricate or invent tool output - you MUST actually call a tool to get results
+2. If asked about tools, list ALL 6 tools above - do not skip any
+3. You can ONLY use the 6 tools listed above - do not claim to have other tools
+4. Before running a tool, you need a specific target (username, email, domain, phone)
+5. If the user hasn't provided a target, ASK for it - do not make one up
+6. ALWAYS cite the source tool when reporting findings (e.g., "Sherlock found...")
+7. If a tool returns no results, say "No results found" - do not speculate
+8. If a tool fails, report the error and suggest alternatives
 
-Example:
-"Sherlock found 3 accounts for 'john_doe':
-• [GitHub] github.com/john_doe
-• [Twitter] twitter.com/john_doe
-• [Reddit] reddit.com/u/john_doe"
+EXAMPLE WORKFLOW:
+User: "Find info about john_doe"
+You: I'll search for the username 'john_doe' using Sherlock.
+[CALL sherlock tool with username="john_doe"]
+[Report ACTUAL results from the tool]
 
-You have access to tools for usernames, emails, domains, and phone numbers.
-Use the appropriate tool based on the input type."""
+NEVER output fake results like "subfinder found 10 subdomains" without actually calling the tool first!
+When answering questions about which tool to use, just name the tool - don't show example output.
+
+Use the appropriate tool based on the input type provided by the user."""
 
 
 @dataclass
@@ -109,12 +115,38 @@ class AgentResponse:
     has_tool_calls: bool = False
     
     @classmethod
-    def from_ollama_response(cls, response: Dict[str, Any]) -> "AgentResponse":
-        """Parse Ollama response into AgentResponse."""
-        message = response.get("message", {})
-        tool_calls = message.get("tool_calls", [])
+    def from_ollama_response(cls, response: Any) -> "AgentResponse":
+        """Parse Ollama response into AgentResponse.
+        
+        Handles both dict and Pydantic model responses from different
+        Ollama library versions.
+        """
+        # Handle Pydantic model (ChatResponse object)
+        if hasattr(response, 'message'):
+            message = response.message
+            # Access attributes directly for Pydantic models
+            if hasattr(message, 'content'):
+                content = message.content or ""
+                tool_calls = getattr(message, 'tool_calls', None) or []
+            else:
+                # Fallback to dict access
+                content = message.get("content", "") if isinstance(message, dict) else ""
+                tool_calls = message.get("tool_calls", []) if isinstance(message, dict) else []
+        # Handle dict response (older format or manual dicts)
+        elif isinstance(response, dict):
+            message = response.get("message", {})
+            content = message.get("content", "") if isinstance(message, dict) else ""
+            tool_calls = message.get("tool_calls", []) if isinstance(message, dict) else []
+        else:
+            content = ""
+            tool_calls = []
+        
+        # Ensure tool_calls is never None
+        if tool_calls is None:
+            tool_calls = []
+            
         return cls(
-            content=message.get("content", ""),
+            content=content,
             tool_calls=tool_calls,
             has_tool_calls=len(tool_calls) > 0
         )
@@ -250,10 +282,18 @@ class AgentLoop:
             function = call.get("function", {})
             tool_name = function.get("name", "unknown")
             
-            # Parse arguments
-            try:
-                arguments = json.loads(function.get("arguments", "{}"))
-            except json.JSONDecodeError:
+            # Parse arguments - handle both string (JSON) and dict formats
+            raw_args = function.get("arguments", {})
+            if isinstance(raw_args, dict):
+                # Already parsed (Ollama library returns dicts)
+                arguments = raw_args
+            elif isinstance(raw_args, str):
+                # JSON string - parse it
+                try:
+                    arguments = json.loads(raw_args)
+                except json.JSONDecodeError:
+                    arguments = {}
+            else:
                 arguments = {}
             
             logger.info(f"Executing tool: {tool_name} with args: {arguments}")

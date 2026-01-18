@@ -359,7 +359,9 @@ Complete architectural transformation from standalone OSINT tool to universal or
 
 ---
 
-[Unreleased]: https://github.com/Expert21/hermes-osint/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/Expert21/hermes-osint/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/Expert21/hermes-osint/compare/v2.0.0...v3.0.0
+[2.0.0]: https://github.com/Expert21/hermes-osint/compare/v1.6.0...v2.0.0
 [1.6.0]: https://github.com/Expert21/hermes-osint/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/Expert21/hermes-osint/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/Expert21/hermes-osint/compare/v1.4.0...v1.4.1

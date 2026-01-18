@@ -9,10 +9,10 @@ with open(readme_path, "r", encoding="utf-8") as fh:
 
 setup(
     name="Hermes",
-    version="2.1.0",
+    version="3.0.0",
     author="Isaiah Myles (Expert21)",
     author_email="isaiahmyles04@gmail.com",
-    description="Universal OSINT Orchestration Platform - Integrate and automate best-in-class intelligence tools",
+    description="The Agentic OSINT Analyst - Conversational AI-driven investigations with natural language and expert tools",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Expert21/hermes-osint",
@@ -47,6 +47,10 @@ setup(
         "rich>=13.7.0",  # Enhanced CLI output
         "colorama>=0.4.6",
         "tqdm>=4.66.0",
+        "prompt_toolkit>=3.0.0",  # TUI REPL
+        
+        # Agent / LLM
+        "ollama>=0.1.0",  # Ollama Python client
         
         # Configuration & Data
         "pyyaml>=6.0.1",

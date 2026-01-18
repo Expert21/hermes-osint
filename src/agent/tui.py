@@ -329,20 +329,22 @@ class HermesTUI:
             return
         
         try:
-            # Show thinking indicator
-            print(f"{Colors.DIM}Thinking...{Colors.RESET}", end='\r')
+            # Show thinking indicator (with flush to display immediately)
+            import sys
+            print(f"\n{Colors.DIM}🔍 Thinking... (this may take 30-60 seconds){Colors.RESET}", end='', flush=True)
             
             # Run the agent
             response = await self.agent.run(user_input)
             
             # Clear thinking indicator and show response
-            print(" " * 20, end='\r')  # Clear line
+            print(f"\r{' ' * 60}\r", end='')  # Clear the line
             print(format_agent_response(response))
             
         except KeyboardInterrupt:
             print(f"\n{Colors.YELLOW}Interrupted{Colors.RESET}")
         except Exception as e:
             logger.error(f"Error processing input: {e}")
+            print(f"\n", end='')  # Newline after thinking indicator
             print(format_error(str(e)))
     
     async def run(self):
@@ -406,9 +408,9 @@ async def main():
     )
     parser.add_argument(
         "--mode",
-        default="native",
+        default="hybrid",
         choices=["native", "docker", "hybrid"],
-        help="Tool execution mode (default: native)"
+        help="Tool execution mode (default: hybrid)"
     )
     parser.add_argument(
         "--debug",

@@ -76,12 +76,12 @@ TUI COMMANDS:
     # Configuration
     parser.add_argument(
         "-m", "--model", default="llama3.2",
-        help="Ollama model to use (default: llama3.2)"
+        help="Ollama model to use (default: llama3.2, recommended: llama3.1:8b)"
     )
     parser.add_argument(
-        "--mode", default="native",
+        "--mode", default="hybrid",
         choices=["native", "docker", "hybrid"],
-        help="Tool execution mode (default: native)"
+        help="Tool execution mode (default: hybrid)"
     )
     parser.add_argument(
         "--stealth", action="store_true",

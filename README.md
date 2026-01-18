@@ -1,48 +1,88 @@
-# Hermes OSINT v2.0 🏛️⚡
+# Hermes OSINT v3.0 🏛️🧠
 
-> **Universal OSINT Orchestration Platform**  
-> One command. Every tool. Clean results. 💪✨
+> **The Agentic OSINT Analyst**  
+> Conversational AI-driven investigations. Natural language. Expert results. 🤖✨
 
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/Expert21/hermes-osint/releases)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/Expert21/hermes-osint/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Docker Required](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
+[![Ollama Powered](https://img.shields.io/badge/ollama-powered-green.svg)](https://ollama.ai/)
+
+---
+
+## What's New in v3.0 🎉
+
+**Hermes 3.0** represents a complete paradigm shift from pipeline-based tool orchestration to a **conversational AI-driven investigation platform**. Powered by local LLMs via Ollama, Hermes now understands natural language queries, autonomously selects and executes tools, and synthesizes findings into coherent intelligence reports.
+
+### 🧠 Agentic Intelligence
+- **Natural Language Interface** - Ask questions like "Find everything about @johndoe" instead of memorizing CLI flags
+- **ReAct Pattern** - Think → Act → Observe cycle for intelligent, iterative investigations
+- **Autonomous Tool Selection** - LLM decides which tools to run based on context
+- **Citation-Based Reporting** - Every finding is attributed to its source tool
+
+### 💬 Interactive TUI
+- **Conversational REPL** - Chat with Hermes in a pentester-themed terminal interface
+- **Session Persistence** - Save and resume investigations with `/save` and `/load`
+- **Context Management** - Automatic summarization prevents token overflow in long sessions
+- **Real-time Status Bar** - Model, context usage, and stealth mode at a glance
+
+### 🔄 Flexible Execution Modes
+- **TUI Mode** (default) - Full conversational experience with Ollama
+- **Headless Mode** - `--headless --query "..."` for scripting and automation
+- **Legacy Mode** - `hermes sherlock <user>` for direct tool access without LLM
 
 ---
 
 ## Overview 🎯
 
-Hermes is a **universal OSINT orchestration platform** that unifies best-in-class open-source intelligence tools into a single, streamlined workflow. Instead of manually running Sherlock, TheHarvester, Holehe, and other tools separately—**wasting precious investigation time** ⏰—Hermes orchestrates them all in parallel, correlates results across sources, eliminates duplicates, and delivers professional reports. 📊
+Hermes is a **universal OSINT orchestration platform** that unifies best-in-class open-source intelligence tools into a single, AI-powered workflow. Instead of manually running Sherlock, TheHarvester, Holehe, and other tools separately—**wasting precious investigation time** ⏰—Hermes's agentic core understands your intent, orchestrates tools intelligently, correlates results across sources, and delivers professional reports. 📊
 
 **What makes Hermes different:** 🌟
-- 🔒 **Security-first plugin architecture** with static code analysis—because trust is earned, not assumed
-- 🐳 **Docker isolation** for zero-trust tool execution—sandbox everything, compromise nothing
-- ⚡ **Parallel processing** with intelligent resource management—2x faster than sequential runs
+- 🧠 **Agentic AI** with ReAct pattern—let the LLM drive your investigation
+- 💬 **Natural language queries**—no flags to memorize, just describe what you need
+- 🔒 **Security-first plugin architecture** with static code analysis—trust is earned
+- 🐳 **Docker isolation** for zero-trust tool execution—sandbox everything
+- ⚡ **Parallel processing** with intelligent resource management—2x faster than sequential
 - 🧩 **Cross-tool correlation engine** for relationship mapping—connect the dots automatically
-- 🔧 **Extensible design**—add new tools without touching core code (seriously, it's that clean!)
+- 🔧 **Extensible design**—add new tools without touching core code
 
 ---
 
 ## Features 💎
 
+### Agentic Core 🤖
+- **ReAct Agent Loop** with Think → Act → Observe cycle
+- **Ollama Integration** for local LLM inference (Llama 3, Mistral, etc.)
+- **Tool Registry** with JSON Schema definitions for function calling
+- **Context Manager** with rolling summaries (24k char limit for 8B models)
+- **Session Store** for saving/loading investigation state
+
+### Interactive TUI 💻
+- **prompt_toolkit REPL** with persistent history (`~/.hermes_history`)
+- **Pentester-themed styling** with green/cyan/orange accents
+- **Dynamic status bar** showing model, context %, and mode
+- **Slash commands**: `/help`, `/tools`, `/status`, `/save`, `/load`, `/export`, `/clear`, `/exit`
+
 ### Tool Orchestration 🎼
-- **7 integrated OSINT tools** out of the box (Sherlock, TheHarvester, h8mail, Holehe, PhoneInfoga, Subfinder, Exiftool) 🛠️
+- **6 integrated OSINT tools** out of the box (Sherlock, TheHarvester, h8mail, Holehe, PhoneInfoga, Subfinder) 🛠️
 - **Plugin architecture** for seamless third-party tool integration 🔌
 - **Static security scanner** validates plugin code before execution—no surprises! 🛡️
 - **Multi-mode execution**: Docker containers, native binaries, or hybrid auto-detection 🎭
+- **Stealth mode enforcement** - blocks active probing tools when enabled 🥷
 
 ### Performance 🚀
-- **Parallel execution** delivers **2x speed improvement** over sequential runs—because time matters ⚡
-- **Smart resource scaling** auto-detects CPU cores and memory—works on your laptop AND your server farm 💻
-- **Ephemeral containers** spin up, execute, and destroy automatically—zero cleanup required! 🌪️
-- **Configurable workers** via `--workers` flag for fine-tuned concurrency control 🎛️
+- **Parallel execution** delivers **2x speed improvement** over sequential runs ⚡
+- **Smart resource scaling** auto-detects CPU cores and memory 💻
+- **Ephemeral containers** spin up, execute, and destroy automatically 🌪️
+- **Configurable workers** via `--workers` flag for fine-tuned concurrency 🎛️
 
 ### Intelligence 🧠
-- **Cross-tool correlation** identifies connections between disparate data sources—the detective work happens automatically 🔍
-- **Fuzzy deduplication** eliminates redundant findings intelligently—no more duplicate noise! 🎯
-- **Unified entity schema** normalizes output across all tools—consistent structure, every time 📐
-- **Source attribution** tracks which tool discovered each piece of intelligence—full transparency 📝
-- **Confidence scoring** quantifies reliability of findings—know what you can trust ⭐
+- **Cross-tool correlation** identifies connections between disparate data sources 🔍
+- **Fuzzy deduplication** eliminates redundant findings intelligently 🎯
+- **Unified entity schema** normalizes output across all tools 📐
+- **Source attribution** tracks which tool discovered each finding 📝
+- **Confidence scoring** quantifies reliability of findings ⭐
 
 ---
 
@@ -51,119 +91,132 @@ Hermes is a **universal OSINT orchestration platform** that unifies best-in-clas
 ### Prerequisites ✅
 - Python 3.10 or higher 🐍
 - Docker (for containerized tool execution) 🐳
+- Ollama with a model installed (for TUI/agentic mode) 🧠
 
 ### Installation 📦
 
 ```bash
+# Clone and install
 git clone https://github.com/Expert21/hermes-osint.git
 cd hermes-osint
 pip install -r requirements.txt
 pip install .
-hermes --doctor  # Health check - make sure everything's ready! 🏥
+
+# Install Ollama and pull a model
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3.1:8b
+
+# Health check
+hermes --doctor  # 🏥 Make sure everything's ready!
 ```
 
 ### Basic Usage 🎮
 
 ```bash
-# Individual investigation (auto-runs Sherlock, Holehe, h8mail, PhoneInfoga, Exiftool)
-hermes --target "johndoe" --type individual --email "john@example.com" --phone "+15551234567"
+# 🧠 TUI Mode (default) - Conversational AI interface
+hermes
+# Then chat naturally: "Find social accounts for johndoe"
 
-# Company investigation (auto-runs TheHarvester, Subfinder)
-hermes --target "ExampleCorp" --type company --domain "example.com"
+# 📜 Headless Mode - For scripting and automation
+hermes --headless --query "Investigate the domain example.com"
 
-# Run specific tool - surgical precision! 🎯
-hermes --tool sherlock --target "johndoe"
-hermes --tool phoneinfoga --phone "+15551234567"
-hermes --tool exiftool --file "/path/to/image.jpg"
-
-# Execution modes - you choose the strategy! 🎲
-hermes --target "johndoe" --mode docker   # 🔒 Isolated containers (most secure)
-hermes --target "johndoe" --mode native   # ⚡ Local binaries (fastest)
-hermes --target "johndoe" --mode hybrid   # 🧠 Auto-detect with fallback (default)
+# 🔧 Legacy Mode - Direct tool access (no LLM required)
+hermes sherlock johndoe
+hermes theharvester example.com
+hermes holehe user@example.com
 ```
 
-### Tool Management 🔧
+### TUI Commands 💬
 
 ```bash
-hermes --doctor          # 🏥 System diagnostics - is everything healthy?
-hermes --pull-images     # 📥 Download all Docker images - prep your toolkit!
-hermes --remove-images   # 🧹 Clean up Docker images - free up space!
+/help          # Show all commands
+/tools         # List available investigation tools
+/status        # Show current session status
+/save          # Save session to file
+/load          # Load a previous session
+/sessions      # List all saved sessions
+/export FILE   # Export report (md, pdf, html, csv, stix)
+/stealth       # Toggle stealth mode
+/clear         # Clear conversation
+/exit          # Exit Hermes
+```
+
+### Advanced Usage 🎯
+
+```bash
+# Stealth mode - passive tools only
+hermes --stealth
+# Blocks: sherlock, holehe, phoneinfoga
+# Allows: theharvester, subfinder, h8mail
+
+# Specific model selection
+hermes --model mistral:7b
+
+# Headless with output
+hermes --headless --query "Find subdomains for target.com" --output report.md
 ```
 
 ---
 
 ## Available Tools 🛠️
 
-| Tool | Purpose | Input Type | Status |
-|------|---------|------------|--------|
-| **Sherlock** 🕵️ | Username enumeration across 300+ sites | Username | ✅ |
-| **TheHarvester** 🌾 | Email/subdomain discovery from OSINT sources | Domain | ✅ |
-| **h8mail** 📧 | Breach data correlation and lookup | Email | ✅ |
-| **Holehe** 🔍 | Email account detection across 120+ platforms | Email | ✅ |
-| **PhoneInfoga** 📱 | Phone number OSINT and carrier lookup | Phone | ✅ |
-| **Subfinder** 🗺️ | Passive subdomain enumeration | Domain | ✅ |
-| **Exiftool** 📸 | Metadata extraction from images/documents | File Path | ✅ |
-
----
-
-## Command Reference 📚
-
-### Core Arguments 💪
-
-| Argument | Description | Example |
-|----------|-------------|---------|
-| `--target` | Primary target identifier | `"johndoe"` |
-| `--type` | Target classification | `individual` or `company` |
-| `--mode` | Execution strategy | `docker`, `native`, `hybrid` |
-| `--tool` | Run single tool only | `sherlock` |
-
-### Target-Specific Arguments 🎯
-
-| Argument | Description | Example |
-|----------|-------------|---------|
-| `--email` | Email for Holehe/h8mail | `"user@example.com"` |
-| `--phone` | Phone for PhoneInfoga | `"+15551234567"` |
-| `--file` | File path for Exiftool | `"/path/to/image.jpg"` |
-| `--domain` | Domain for TheHarvester/Subfinder | `"example.com"` |
-
-### Performance & Configuration ⚙️
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--workers` | Concurrent worker threads | `10` |
-| `--stealth` | Enable passive-only mode 🥷 | `false` |
-| `--output` | Output file path | `results.json` |
+| Tool | Purpose | Input Type | Stealth | Status |
+|------|---------|------------|---------|--------|
+| **Sherlock** 🕵️ | Username enumeration across 300+ sites | Username | ❌ | ✅ |
+| **TheHarvester** 🌾 | Email/subdomain discovery from OSINT sources | Domain | ✅ | ✅ |
+| **h8mail** 📧 | Breach data correlation and lookup | Email | ✅ | ✅ |
+| **Holehe** 🔍 | Email account detection across 120+ platforms | Email | ❌ | ✅ |
+| **PhoneInfoga** 📱 | Phone number OSINT and carrier lookup | Phone | ❌ | ✅ |
+| **Subfinder** 🗺️ | Passive subdomain enumeration | Domain | ✅ | ✅ |
 
 ---
 
 ## Architecture 🏗️
 
+### v3.0 Agentic Architecture
+
+```
+User Input → CLI (cli.py)
+                ├── TUI Mode → AgentLoop → Ollama → ToolExecutor → Adapters
+                ├── Headless → AgentLoop → Single Query → Report
+                └── Legacy → ToolExecutor Direct (no LLM)
+```
+
+### Component Flow
+
 ```
 ┌─────────────┐
-│ User Input  │ 👤
+│ User Query  │ 💬 "Find info about johndoe"
 └──────┬──────┘
        │
        ▼
 ┌─────────────────┐
-│ WorkflowManager │ 🎯 (The Conductor)
+│   AgentLoop     │ 🧠 ReAct: Think → Act → Observe
+│  (agent_loop.py)│
 └────────┬────────┘
          │
-         ├─────────────────┐
-         │                 │
-         ▼                 ▼
-┌──────────────┐   ┌──────────────┐
-│ PluginLoader │🔌 │SecurityScanner│🛡️
-└──────┬───────┘   └──────────────┘
+         ├──────────────────┬────────────────┐
+         ▼                  ▼                ▼
+┌──────────────┐   ┌───────────────┐  ┌─────────────┐
+│ ToolRegistry │   │ContextManager │  │ SessionStore│
+│(tool_registry)│  │(context_mgr.py)│ │(session_store)│
+└──────┬───────┘   └───────────────┘  └─────────────┘
        │
        ▼
 ┌──────────────────────┐
-│ ExecutionStrategy    │ 🎭
-│ (Docker/Native/Hybrid)│
+│   ToolExecutor       │ 🔧 Validates + Executes
+│  (tool_executor.py)  │
 └──────────┬───────────┘
            │
            ▼
+┌─────────────────────────┐
+│ ExecutionStrategy       │ 🎭 Docker/Native/Hybrid
+│ (execution_strategy.py) │
+└──────────┬──────────────┘
+           │
+           ▼
     ┌──────────────┐
-    │ Tool Adapters│ 🔧
+    │ Tool Adapters│ 🔌 Sherlock, TheHarvester, etc.
     └──────┬───────┘
            │
            ▼
@@ -174,54 +227,69 @@ hermes --remove-images   # 🧹 Clean up Docker images - free up space!
                                 ▼
                          ┌─────────────┐
                          │   Report    │ 📊
+                         │ (exporter)  │
                          └─────────────┘
 ```
 
 ### Key Components 🔑
-- **PluginLoader** 🔌: Discovers and validates plugins from `src/plugins/` and `~/.hermes/plugins/`
-- **SecurityScanner** 🛡️: AST-based static analysis detects dangerous code patterns—no malicious plugins allowed!
-- **ExecutionStrategy** 🎭: Manages Docker/native execution with automatic fallback—smart decisions, zero intervention
-- **DockerManager** 🐳: Ephemeral container lifecycle with SHA256 image verification—security baked in
-- **ToolAdapter** 🔧: Standardized interface for all integrated tools—plug and play!
+
+#### Agent Layer (`src/agent/`)
+- **AgentLoop** 🧠: ReAct pattern with Ollama function calling
+- **ToolRegistry** 📋: JSON Schema definitions for LLM tool use
+- **ToolExecutor** 🔧: Validates inputs, enforces stealth, bridges to adapters
+- **ContextManager** 📊: Rolling summaries, prevents token overflow
+- **SessionStore** 💾: JSON persistence for save/load functionality
+- **TUI** 💻: prompt_toolkit REPL with pentester styling
+
+#### Orchestration Layer (`src/orchestration/`)
+- **ExecutionStrategy** 🎭: Docker/Native/Hybrid mode selection
+- **DockerManager** 🐳: Ephemeral containers with SHA256 verification
+- **TaskManager** ⚡: Parallel execution with resource limits
+
+#### Security Layer (`src/security/`)
+- **PluginSecurityScanner** 🛡️: AST-based static analysis
+- **InputValidator** ✅: Injection prevention, path traversal protection
+- **SecretsManager** 🔐: Encrypted credential storage
 
 ---
 
 ## Security 🔐
 
+### Agent Safety 🛡️
+- **Grounding rules** prevent LLM speculation—cite sources or stay silent
+- **Stealth mode enforcement** blocks active probing tools when enabled
+- **Input validation** on all tool parameters before execution
+- **Context limits** prevent prompt injection via token overflow
+
 ### Container Isolation 🐳🔒
-- **SHA256 digest pinning** prevents image tampering—trust, but verify! ✅
-- **Ephemeral lifecycle** destroys containers immediately after execution—no trace left behind 🌪️
-- **Resource limits** (768MB RAM, 50% CPU, 64 PIDs)—prevent runaway processes 🚦
-- **Network isolation** with configurable DNS and proxy support—control the blast radius 🌐
-- **Non-root execution** (UID/GID 65534:65534)—privilege separation by default 👥
+- **SHA256 digest pinning** prevents image tampering ✅
+- **Ephemeral lifecycle** destroys containers immediately after execution 🌪️
+- **Resource limits** (768MB RAM, 50% CPU, 64 PIDs) 🚦
+- **Network isolation** with configurable DNS and proxy support 🌐
+- **Non-root execution** (UID/GID 65534:65534) 👥
 
 ### Plugin Security 🛡️
-- **Static analysis** detects `eval()`, `exec()`, `os.system()`, and shell injection patterns—we catch the bad stuff BEFORE it runs! 🚨
-- **Two-tier trust model** separates Tool plugins from Core plugins—clear boundaries 🏛️
-- **Capability declarations** explicitly define required permissions—no surprises, only transparency 📋
-
-### Input Validation ✅
-- **Path traversal protection** for file operations—can't escape the sandbox! 🚫
-- **Command injection prevention** via list-based subprocess arguments—shellshock-proof 💪
-- **Encrypted credential storage** using OS-native keyring—your secrets stay secret 🔐
+- **Static analysis** detects `eval()`, `exec()`, `os.system()`, and shell injection 🚨
+- **Two-tier trust model** separates Tool plugins from Core plugins 🏛️
+- **Capability declarations** explicitly define required permissions 📋
 
 ---
 
 ## Output Formats 📄
 
-Hermes generates reports in multiple formats based on file extension—**your data, your way!** 🎨
+Hermes generates reports in multiple formats via `/export`—**your data, your way!** 🎨
 
-📦 **JSON** - Structured data for programmatic consumption and automation
+📦 **JSON** - Structured data for programmatic consumption
 
-📝 **Markdown** - Clean, GitHub-compatible format with embedded tables
+📝 **Markdown** - Clean, GitHub-compatible format with tables
 
-🌐 **HTML** - Responsive design with embedded CSS and interactive statistics dashboard
+🌐 **HTML** - Responsive design with embedded CSS and statistics
 
-📄 **PDF** - Professional formatting with executive summary and quality metrics
+📄 **PDF** - Professional formatting with executive summary
 
 📊 **CSV** - Simple tabular format for spreadsheet import
 
-🔒 **STIX 2.1** - Industry-standard threat intelligence format (TAXII-compatible)
+🔒 **STIX 2.1** - Industry-standard threat intelligence format
 
 ---
 
@@ -237,27 +305,23 @@ Hermes OSINT is licensed under the **GNU Affero General Public License v3.0**.
 - ✅ Copyleft—modifications must also be open-sourced under AGPL-3.0
 - ⚠️ **Network use = Distribution**—if you run Hermes as a service, you **must** share your source code
 
-**Critical requirement:** ⚠️ If you modify Hermes and offer it as a web service or SaaS, you **must** make your modified source code available to users.
-
 See the [LICENSE](LICENSE) file for complete terms.
-
-**Third-party tools:** 🛠️ Each integrated tool maintains its own license (Sherlock: MIT, TheHarvester: GPL-2.0, h8mail: BSD-3-Clause, Holehe: GPL-3.0, etc.)
 
 ---
 
 ## Use Cases 💼
 
-🔍 **Security Research** - Investigate potential threats and attack surface enumeration
+🔍 **Security Research** - Investigate threats with natural language queries
 
-🤝 **Due Diligence** - Background verification for business partnerships and hiring
+🤝 **Due Diligence** - "Tell me everything about this person/company"
 
-👣 **Digital Footprint Analysis** - Understand your organization's public exposure
+👣 **Digital Footprint Analysis** - Understand your organization's exposure
 
-📈 **Competitive Intelligence** - Research competitors and market landscape
+📈 **Competitive Intelligence** - Research competitors conversationally
 
-🎯 **Threat Intelligence** - Collect indicators for security operations centers
+🎯 **Threat Intelligence** - Collect indicators with AI-driven triage
 
-📰 **Investigative Journalism** - Research subjects for investigative reporting
+📰 **Investigative Journalism** - Let Hermes connect the dots
 
 ---
 
@@ -302,13 +366,13 @@ Contributions are welcome! 🎉 Please see [PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELO
 
 <div align="center">
 
-**Hermes v2.0** 🏛️⚡  
-*One Command. Every Tool. Clean Results.*
+**Hermes v3.0** 🏛️🧠  
+*The Agentic OSINT Analyst*
 
 ---
 
-**Built with precision. Deployed with confidence. Trusted by investigators worldwide.** 🌍🔍
+**Conversational AI. Expert Tools. Unified Intelligence.**
 
-Made with 💪 and ☕ by someone who believes OSINT should be **fast, secure, and accessible**.
+Made with 💪 and ☕ by someone who believes OSINT should be **intelligent, secure, and accessible**.
 
 </div>

@@ -3,6 +3,8 @@
 """
 Hermes CLI entry point
 This module is used when running 'hermes' command after installation
+
+Hermes v3.0 - The Agentic OSINT Analyst
 """
 
 def cli():
@@ -15,9 +17,9 @@ def cli():
     if install_dir not in sys.path:
         sys.path.insert(0, install_dir)
     
-    # Import and run main
-    from main import main
-    sys.exit(main())
+    # Import and run the new agentic CLI
+    from src.agent.cli import entry_point
+    entry_point()
 
 if __name__ == "__main__":
     cli()
